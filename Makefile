@@ -39,11 +39,11 @@ EXE=.exe
 
 endif
 
-############ Linux
+############ Linux (hidraw)
 ifeq "$(OS)" "linux"
 
-LIBS = 
-OBJS = ./hidapi/linux/hid.o
+LIBS = `pkg-config libudev --libs`
+OBJS = $(HIDAPI_DIR)/linux/hid.o
 EXE=
 
 endif
@@ -61,7 +61,7 @@ $(OBJS): %.o: %.c
 
 
 hidapitester: $(OBJS) 
-	$(CC) $(CFLAGS) $(LIBS) $(OBJS) -o hidapitester$(EXE) 
+	$(CC) $(CFLAGS) $(OBJS) -o hidapitester$(EXE) $(LIBS)
 
 clean:
 	rm -f $(OBJS)
