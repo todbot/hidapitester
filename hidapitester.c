@@ -39,6 +39,7 @@ static void print_usage(char *myname)
 "  --list                      List connected HID devices \n"
 "  --open <vid:pid>            Open device with VendorId/ProductId \n"
 "  --open <vid:pid:usagePage:usage> Open but with usagePage & usage \n"
+"  --open-path <pathstr>       Open device by path (as in --list) \n"
 "  --close                     Close currently open device \n"
 "  --send-out <datalist>       Send Ouput report to device \n"
 "  --send-feature <datalist>   Send Feature report \n"
@@ -53,6 +54,7 @@ enum {
     CMD_NONE = 0,
     CMD_LIST,
     CMD_OPEN,
+    CMD_OPEN_PATH,
     CMD_CLOSE,
     CMD_SEND_OUTPUT,
     CMD_SEND_FEATURE,
@@ -62,6 +64,8 @@ enum {
 
 
 bool msg_quiet = false;
+
+
 /**
  * printf that can be shut up
  */
@@ -79,16 +83,16 @@ void msg(char* fmt, ...)
 void printbuf(char* buf, int bufsize)
 {
     for (int i = 0; i < bufsize; i++) {
-        msg("%d,", buf[i]);
+        printf("%d,", buf[i]);
     }
-    msg("\n");
+    printf("\n");
 }
 void printbufhex(uint8_t* buf, int bufsize)
 {
     for( int i=0;i<bufsize;i++) {
-       msg("0x%0x, ",buf[i]);
+       printf("0x%0x, ",buf[i]);
     }
-    msg("\n");
+    printf("\n");
 }
 
 /**
@@ -158,6 +162,7 @@ int main(int argc, char* argv[])
          {"len",          required_argument, 0,      'l'},
          {"list",         no_argument,       &cmd,   CMD_LIST},
          {"open",         required_argument, &cmd,   CMD_OPEN},
+         {"open-path",    required_argument, &cmd,   CMD_OPEN_PATH},
          {"close",        no_argument,       &cmd,   CMD_CLOSE},
          {"send-output",  required_argument, &cmd,   CMD_SEND_OUTPUT},
          {"send-feature", required_argument, &cmd,   CMD_SEND_FEATURE},
@@ -168,7 +173,7 @@ int main(int argc, char* argv[])
     
     bool done = false;
     int option_index = 0, opt;
-    char* opt_str = "vht:l:";
+    char* opt_str = "vht:l:q";
     while(!done) {
         opt = getopt_long(argc, argv, opt_str, longoptions, &option_index);
         if (opt==-1) done = true; // parsed all the args
@@ -205,22 +210,30 @@ int main(int argc, char* argv[])
                 }
                 else if( parsedlen == 2 ) { // vid/pid
                     vid = wordbuf[0]; pid = wordbuf[1];
-                    msg("opening device at vid/pid %x/%x\n",vid,pid);
+                    msg("Opening device at vid/pid %x/%x\n",vid,pid);
                     dev = hid_open(vid,pid,NULL);
                     if( dev==NULL ) {
-                        msg("error: no device found\n");
+                        msg("error: could not open device\n");
                     }
                 }
                 else if( parsedlen == 4 ) { // vid/pid/usagePage/usage
-                    msg("open by vid/pid/usagePage/usage not implemented yet\n");
+                    msg("Open by vid/pid/usagePage/usage not implemented yet\n");
                 }
                 else {
-                    msg("error: could not open device\n");
+                    msg("Error: could not open device\n");
+                }
+            }
+            else if( cmd == CMD_OPEN_PATH ) {
+
+                msg("Opening device at: %s\n",optarg);
+                dev = hid_open_path(optarg);
+                if( dev==NULL ) {
+                    msg("Error: could not open device\n");
                 }
             }
             else if( cmd == CMD_CLOSE ) {
                 
-                msg("closing device\n");
+                msg("Closing device\n");
                 if(dev) {
                     hid_close(dev);
                     dev = NULL;
@@ -231,39 +244,45 @@ int main(int argc, char* argv[])
                 
                 int parsedlen = hexread(buf, ", ", optarg, sizeof(buf), 1);
                 if( parsedlen<1 ) { // no bytes or error
-                    msg("error: no bytes read as arg to --send...");
+                    msg("Error: no bytes read as arg to --send...");
                     break;
                 }
                 buflen = (!buflen) ? parsedlen : buflen;
                 //printbufhex(buf,parsedlen);  // debug
                 
                 if( !dev ) { 
-                    msg("error: no device opened. use --open before --send...\n");
+                    msg("Error: no device opened. use --open before --send...\n");
                     break;
                 }
                 if( cmd == CMD_SEND_OUTPUT ) { 
-                    msg("writing output report of %d-bytes...",buflen);
+                    msg("Writing output report of %d-bytes...",buflen);
                     res = hid_write(dev, buf, buflen);
                 }
                 else {
-                    msg("writing feature report of %d-bytes...",buflen);
+                    msg("Writing %d-byte feature report...",buflen);
                     res = hid_send_feature_report(dev, buf, buflen);
                 }
                 msg("wrote %d bytes\n", res);
             }
             else if( cmd == CMD_READ_INPUT ) {
                 
+                memset(buf,0,buflen);
+                msg("Reading %d-byte input report with %d msec timeout...", buflen,timeout_millis);
                 res = hid_read_timeout(dev, buf, buflen, timeout_millis);
+                msg("read %d bytes\n", res);
+                msg("Report:\n");
+                printbufhex(buf,buflen);
 
             }
             else if( cmd == CMD_READ_FEATURE ) {
                 
                 uint8_t report_id = strtol(optarg,NULL,10);
+                memset(buf,0,buflen);
                 buf[0] = report_id;
-                msg("reading feature report on report_id %d...",report_id);
+                msg("Reading %d-byte feature report on report_id %d...",buflen, report_id);
                 res = hid_get_feature_report(dev, buf, buflen);
                 msg("read %d bytes\n",res);
-                msg("report: ");
+                msg("Report:\n");
                 printbufhex(buf, buflen);
             }
             
@@ -274,7 +293,10 @@ int main(int argc, char* argv[])
             break;
         case 'l':
             buflen = strtol(optarg,NULL,10);
-            msg("setting buf len to %d\n", buflen);
+            msg("Set buflen to %d\n", buflen);
+            break;
+        case 'q':
+            msg_quiet = true;
             break;
         } // switch(opt)
         
