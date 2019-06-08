@@ -26,15 +26,17 @@ static void print_usage(char *myname)
 "Usage: \n"
 "  %s <cmd> [options]\n"
 "where <cmd> is one of:\n"
-"  --list                      List connected HID devices \n"
-"  --open <vid:pid>            Open device with VendorId/ProductId \n"
-"  --open <vid:pid:usagePage:usage> Open but with usagePage & usage \n"
+"  --vidpid <vid/pid>          Filter by vendorId/productId (comma/slash delim)\n"
+"  --usagePage <number>        Filter by usagePage \n"
+"  --usage <number>            Filter by usage \n"
+"  --list                      List connected HID devices (by filters)\n"
+"  --open                      Open device with previously selected filters\n"
 "  --open-path <pathstr>       Open device by path (as in --list) \n"
 "  --close                     Close currently open device \n"
 "  --send-out <datalist>       Send Ouput report to device \n"
-"  --send-feature <datalist>   Send Feature report \n"
-"  --read-feature [reportId]   Read Feature report (w/ report-id) \n"
-"  --len <len>, -l <len>       Set length in bytes of report to send/read \n"
+"  --send-feature <datalist>   Send Feature report (first byte reportId, if used)\n"
+"  --read-feature <reportId>   Read Feature report (w/ report-id, 0 if unused) \n"
+"  --length <len>, -l <len>    Set length in bytes of report to send/read \n"
 "  --timeout <msecs>           Timeout in millisecs to wait for input reads \n"
 "  --quiet, -q                 Print out nothing except when reading data \n"
 "", myname);
@@ -45,6 +47,7 @@ enum {
     CMD_NONE = 0,
     CMD_VIDPID,
     CMD_USAGE,
+    CMD_USAGEPAGE,
     CMD_LIST,
     CMD_OPEN,
     CMD_OPEN_PATH,
@@ -57,7 +60,7 @@ enum {
 
 
 bool msg_quiet = false;
-
+bool msg_verbose = false;
 
 /**
  * printf that can be shut up
@@ -66,9 +69,17 @@ void msg(char* fmt, ...)
 {
     va_list args;
     va_start(args,fmt);
-    if( !msg_quiet ) {
-        vprintf(fmt,args);
-    }
+    if(!msg_quiet) { vprintf(fmt,args); }
+    va_end(args);
+}
+/**
+ * printf that is wordy
+ */
+void msginfo(char* fmt, ...)
+{
+    va_list args;
+    va_start(args,fmt);
+    if(msg_verbose) { vprintf(fmt,args); } 
     va_end(args);
 }
 
@@ -83,7 +94,8 @@ void printbuf(char* buf, int bufsize)
     printf("\n");
 }
 /**
- * same but for hex output
+ * Print out a buffer of len bufsize in hex form, 
+ * wrapping every 16 bytes 
  */
 void printbufhex(uint8_t* buf, int bufsize)
 {
@@ -134,9 +146,11 @@ int main(int argc, char* argv[])
     
     uint16_t vid = 0;        // productId 
     uint16_t pid = 0;        // vendorId
-    uint16_t usage = 0;      // usage to search for, if any
     uint16_t usage_page = 0; // usagePage to search for, if any
+    uint16_t usage = 0;      // usage to search for, if any
     char devpath[MAX_STR];   // path to open, if filter by usage
+
+    setbuf(stdout, NULL);  // turn off buffering of stdout
         
     if(argc < 2){
         print_usage( "hidapitester" );
@@ -146,13 +160,14 @@ int main(int argc, char* argv[])
     struct option longoptions[] =
         {
          {"help", no_argument, 0, 'h'},
-         //{"verbose",      optional_argument, 0,      'v'},
+         {"verbose",      no_argument, 0,            'v'},
          {"quiet",        optional_argument, 0,      'q'},
          {"timeout",      required_argument, 0,      't'},
          {"length",       required_argument, 0,      'l'},
          {"buflen",       required_argument, 0,      'l'},
          {"vidpid",       required_argument, &cmd,   CMD_VIDPID},
          {"usage",        required_argument, &cmd,   CMD_USAGE},
+         {"usagePage",    required_argument, &cmd,   CMD_USAGEPAGE},
          {"list",         no_argument,       &cmd,   CMD_LIST},
          {"open",         no_argument,       &cmd,   CMD_OPEN},
          {"open-path",    required_argument, &cmd,   CMD_OPEN_PATH},
@@ -169,6 +184,8 @@ int main(int argc, char* argv[])
     char* opt_str = "vht:l:q";
     while(!done) {
         memset(buf,0, MAX_BUF); // reset buffers
+        memset(devpath,0,MAX_STR);
+
         opt = getopt_long(argc, argv, opt_str, longoptions, &option_index);
         if (opt==-1) done = true; // parsed all the args
         switch(opt) {
@@ -199,40 +216,53 @@ int main(int argc, char* argv[])
                 msg("Looking for vid/pid 0x%04X / 0x%04X\n",vid,pid);
 
             }
+            else if( cmd == CMD_USAGEPAGE ) {
+                usage_page = strtol(optarg,NULL,0);
+                msginfo("Set usagePage to 0x%04X (%s)\n", usage_page, optarg);
+            }
             else if( cmd == CMD_USAGE ) {
-                
-                int wordbuf[10]; // only need 2, extra as guard
-                int parsedlen = hexread(wordbuf, "/, ", optarg, sizeof(wordbuf), 2);
-                usage_page = wordbuf[0]; usage = wordbuf[1];
-                msg("Looking for usagePage/usage 0x%04X / 0x%04X\n",usage_page,usage);
-                
-                struct hid_device_info *devs, *cur_dev;
-                devs = hid_enumerate(vid, pid); // 0,0 = find all devices
-                cur_dev = devs;
-                while (cur_dev) {
-                    if( usage_page && cur_dev->usage_page == usage_page && cur_dev->usage == usage) {
-                        strncpy(devpath, cur_dev->path, MAX_STR); // save it!
-                    }
-                    cur_dev = cur_dev->next;
-                }
-                hid_free_enumeration(devs);
+                usage = strtol(optarg,NULL,0);
+                msginfo("Set usage to 0x%04X\n", usage);
             }
             else if( cmd == CMD_OPEN ) {
-                if( devpath[0] ) {
-                    msg("Opening device at %s\n",devpath);
-                    dev = hid_open_path(devpath);
-                }
-                else {
-                    msg("Opening device at 0x%04X / 0x%04X\n",vid,pid);
+
+                if( !usage_page && !usage ) {
+                    msg("Opening device, vid/pid: 0x%04X/0x%04X\n",vid,pid);
                     dev = hid_open(vid,pid,NULL);
                 }
-                if( dev==NULL ) {
-                    msg("Error: could not open device.\n");
+                else {
+                    msg("Opening device, vid/pid:0x%04X/0x%04X, usagePage/usage: %X/%X\n",
+                        vid,pid,usage_page,usage);
+
+                    struct hid_device_info *devs, *cur_dev;
+                    devs = hid_enumerate(vid, pid); // 0,0 = find all devices
+                    cur_dev = devs;
+                    while (cur_dev) {
+                        if( usage_page && cur_dev->usage_page == usage_page &&
+                            usage && cur_dev->usage == usage) {
+                            strncpy(devpath, cur_dev->path, MAX_STR); // save it!
+                        }
+                        cur_dev = cur_dev->next;
+                    }
+                    hid_free_enumeration(devs);
+
+                    if( devpath[0] ) {
+                        dev = hid_open_path(devpath);
+                        if( dev==NULL ) {
+                            msg("Error: could not open device\n");
+                        }
+                        else {
+                            msg("Device opened\n");
+                        }
+                    }
+                    else {
+                        msg("Error: no matching devices\n");
+                    }
                 }
             }
             else if( cmd == CMD_OPEN_PATH ) {
 
-                msg("Opening device at %s\n",optarg);
+                msg("Opening device. path: %s\n",optarg);
                 dev = hid_open_path(optarg);
                 if( dev==NULL ) {
                     msg("Error: could not open device\n");
@@ -300,18 +330,20 @@ int main(int argc, char* argv[])
             break; // case 0
         case 'h':
             print_usage("hidapitester");
-            done = true;
             break;
         case 'l':
             buflen = strtol(optarg,NULL,10);
-            msg("Set buflen to %d\n", buflen);
+            msginfo("Set buflen to %d\n", buflen);
             break;
         case 't':
             timeout_millis = strtol(optarg,NULL,10);
-            msg("Set timeout_millis to %d\n", buflen);
+            msginfo("Set timeout_millis to %d\n", timeout_millis);
             break;
         case 'q':
             msg_quiet = true;
+            break;
+        case 'v':
+            msg_verbose = true;
             break;
         } // switch(opt)
         
