@@ -88,7 +88,8 @@ void printbuf(char* buf, int bufsize)
 void printbufhex(uint8_t* buf, int bufsize)
 {
     for( int i=0;i<bufsize;i++) {
-       printf("0x%0x, ",buf[i]);
+       printf("%02X ", buf[i] );
+       if (i % 16 == 15 && i < bufsize-1) printf("\n");
     }
     printf("\n");
 }
@@ -149,6 +150,7 @@ int main(int argc, char* argv[])
          {"quiet",        optional_argument, 0,      'q'},
          {"timeout",      required_argument, 0,      't'},
          {"length",       required_argument, 0,      'l'},
+         {"buflen",       required_argument, 0,      'l'},
          {"vidpid",       required_argument, &cmd,   CMD_VIDPID},
          {"usage",        required_argument, &cmd,   CMD_USAGE},
          {"list",         no_argument,       &cmd,   CMD_LIST},
@@ -166,6 +168,7 @@ int main(int argc, char* argv[])
     int option_index = 0, opt;
     char* opt_str = "vht:l:q";
     while(!done) {
+        memset(buf,0, MAX_BUF); // reset buffers
         opt = getopt_long(argc, argv, opt_str, longoptions, &option_index);
         if (opt==-1) done = true; // parsed all the args
         switch(opt) {
@@ -209,7 +212,6 @@ int main(int argc, char* argv[])
                 while (cur_dev) {
                     if( usage_page && cur_dev->usage_page == usage_page && cur_dev->usage == usage) {
                         strncpy(devpath, cur_dev->path, MAX_STR); // save it!
-                        printf("found:%s\n", devpath);
                     }
                     cur_dev = cur_dev->next;
                 }
@@ -273,7 +275,6 @@ int main(int argc, char* argv[])
                     msg("Error on read: no device opened.\n"); break;
                 }
                 
-                memset(buf,0,buflen);
                 msg("Reading %d-byte input report, %d msec timeout...", buflen,timeout_millis);
                 res = hid_read_timeout(dev, buf, buflen, timeout_millis);
                 msg("read %d bytes\n", res);
