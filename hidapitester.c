@@ -19,9 +19,6 @@
 #define MAX_STR 1024  // for manufacturer, product strings
 #define MAX_BUF 1024  // for buf reads & writes
 
-unsigned short vid_to_find = 0x27B8; // ThingM
-unsigned short pid_to_find = 0x01ED; // blink1
-
 
 static void print_usage(char *myname)
 {
@@ -46,6 +43,8 @@ static void print_usage(char *myname)
 // local states for the "cmd" option variable
 enum { 
     CMD_NONE = 0,
+    CMD_VIDPID,
+    CMD_USAGE,
     CMD_LIST,
     CMD_OPEN,
     CMD_OPEN_PATH,
@@ -123,15 +122,21 @@ int hexread(void* buffer, char* delim_str, char* string, int buflen, int bufelem
  */
 int main(int argc, char* argv[])
 {
-    uint8_t buf[MAX_BUF];
-    wchar_t wstr[MAX_STR];
-    hid_device *dev = NULL;
+    uint8_t buf[MAX_BUF];   // data buffer for send/recv
+    wchar_t wstr[MAX_STR];  // string buffer for USB strings
+    hid_device *dev = NULL; // HIDAPI device we will open
     int res;
     int i;
-    int buflen = 0;
-    int cmd = CMD_NONE;
+    int buflen = 0;         // length of buf in use
+    int cmd = CMD_NONE;     // 
     int timeout_millis = 250;
     
+    uint16_t vid = 0;        // productId 
+    uint16_t pid = 0;        // vendorId
+    uint16_t usage = 0;      // usage to search for, if any
+    uint16_t usage_page = 0; // usagePage to search for, if any
+    char devpath[MAX_STR];   // path to open, if filter by usage
+        
     if(argc < 2){
         print_usage( "hidapitester" );
         exit(1);
@@ -140,12 +145,14 @@ int main(int argc, char* argv[])
     struct option longoptions[] =
         {
          {"help", no_argument, 0, 'h'},
-         {"verbose",      optional_argument, 0,      'v'},
+         //{"verbose",      optional_argument, 0,      'v'},
          {"quiet",        optional_argument, 0,      'q'},
          {"timeout",      required_argument, 0,      't'},
          {"length",       required_argument, 0,      'l'},
+         {"vidpid",       required_argument, &cmd,   CMD_VIDPID},
+         {"usage",        required_argument, &cmd,   CMD_USAGE},
          {"list",         no_argument,       &cmd,   CMD_LIST},
-         {"open",         required_argument, &cmd,   CMD_OPEN},
+         {"open",         no_argument,       &cmd,   CMD_OPEN},
          {"open-path",    required_argument, &cmd,   CMD_OPEN_PATH},
          {"close",        no_argument,       &cmd,   CMD_CLOSE},
          {"send-output",  required_argument, &cmd,   CMD_SEND_OUTPUT},
@@ -165,50 +172,65 @@ int main(int argc, char* argv[])
         case 0:  // long opts with no short opts
             
             if( cmd == CMD_LIST ) {
-                // Enumerate and print the HID devices on the system
                 struct hid_device_info *devs, *cur_dev;
-                //char foundpath[MAX_STR]; // 1024 should be enough for anyone :)
-                devs = hid_enumerate(0x0, 0x0); // 0,0 = find all devices
+                devs = hid_enumerate(vid, pid); // 0,0 = find all devices
                 cur_dev = devs;
                 while (cur_dev) {
-                    printf("Device: '%ls' by '%ls'\n", cur_dev->product_string, cur_dev->manufacturer_string);
-                    printf("  vid/pid: 0x%04hx / 0x%04hx\n",cur_dev->vendor_id, cur_dev->product_id);
-                    printf("  usage_page: 0x%x, usage: 0x%x,   serial_number: %ls \n",
-                           cur_dev->usage_page, cur_dev->usage, cur_dev->serial_number );
-                    printf("  path: %s\n",cur_dev->path);
-                    // if we implement find code, it goes like this
-                    //if( cur_dev->vendor_id == vid_to_find && cur_dev->product_id == pid_to_find ) { 
-                    // && cur_dev->usage_page == 0xFFAB && cur_dev->usage == 0x200 ) {
-                    //    printf("Found device!\n");
-                    //    strcpy( foundpath, cur_dev->path );
-                    //}
+                    if(  (!usage_page || cur_dev->usage_page == usage_page) &&
+                         (!usage || cur_dev->usage == usage) ) {
+                        printf("Device: '%ls' by '%ls'\n", cur_dev->product_string, cur_dev->manufacturer_string);
+                        printf("  vid/pid: 0x%04hX / 0x%04hX\n",cur_dev->vendor_id, cur_dev->product_id);
+                        printf("  usagePage / usage: 0x%x / 0x%x,   serial_number: %ls \n",
+                               cur_dev->usage_page, cur_dev->usage, cur_dev->serial_number );
+                        printf("  path: %s\n",cur_dev->path);
+                    }
+                    cur_dev = cur_dev->next;
+                }
+                hid_free_enumeration(devs);
+            }
+            else if( cmd == CMD_VIDPID ) {
+                
+                int wordbuf[10];
+                int parsedlen = hexread(wordbuf, "/, ", optarg, sizeof(wordbuf), 2);
+                vid = wordbuf[0]; pid = wordbuf[1];
+                msg("Looking for vid/pid 0x%04X / 0x%04X\n",vid,pid);
+
+            }
+            else if( cmd == CMD_USAGE ) {
+                
+                int wordbuf[10]; // only need 2, extra as guard
+                int parsedlen = hexread(wordbuf, "/, ", optarg, sizeof(wordbuf), 2);
+                usage_page = wordbuf[0]; usage = wordbuf[1];
+                msg("Looking for usagePage/usage 0x%04X / 0x%04X\n",usage_page,usage);
+                
+                struct hid_device_info *devs, *cur_dev;
+                devs = hid_enumerate(vid, pid); // 0,0 = find all devices
+                cur_dev = devs;
+                while (cur_dev) {
+                    if( usage_page && cur_dev->usage_page == usage_page && cur_dev->usage == usage) {
+                        strncpy(devpath, cur_dev->path, MAX_STR); // save it!
+                        printf("found:%s\n", devpath);
+                    }
                     cur_dev = cur_dev->next;
                 }
                 hid_free_enumeration(devs);
             }
             else if( cmd == CMD_OPEN ) {
-                
-                uint16_t vid, pid;
-                int wordbuf[10];
-                int parsedlen = hexread(wordbuf, "/, ", optarg, sizeof(wordbuf), 2);
-                if( parsedlen == 2 ) { // vid/pid
-                    vid = wordbuf[0]; pid = wordbuf[1];
-                    msg("Opening device at vid/pid %x/%x\n",vid,pid);
-                    dev = hid_open(vid,pid,NULL);
-                    if( dev==NULL ) {
-                        msg("Error: could not open device.\n");
-                    }
-                }
-                else if( parsedlen == 4 ) { // vid/pid/usagePage/usage
-                    msg("Open by vid/pid/usagePage/usage not implemented yet\n");
+                if( devpath[0] ) {
+                    msg("Opening device at %s\n",devpath);
+                    dev = hid_open_path(devpath);
                 }
                 else {
-                    msg("Error: could not open device\n");
+                    msg("Opening device at 0x%04X / 0x%04X\n",vid,pid);
+                    dev = hid_open(vid,pid,NULL);
+                }
+                if( dev==NULL ) {
+                    msg("Error: could not open device.\n");
                 }
             }
             else if( cmd == CMD_OPEN_PATH ) {
 
-                msg("Opening device at: %s\n",optarg);
+                msg("Opening device at %s\n",optarg);
                 dev = hid_open_path(optarg);
                 if( dev==NULL ) {
                     msg("Error: could not open device\n");
@@ -282,6 +304,10 @@ int main(int argc, char* argv[])
         case 'l':
             buflen = strtol(optarg,NULL,10);
             msg("Set buflen to %d\n", buflen);
+            break;
+        case 't':
+            timeout_millis = strtol(optarg,NULL,10);
+            msg("Set timeout_millis to %d\n", buflen);
             break;
         case 'q':
             msg_quiet = true;
