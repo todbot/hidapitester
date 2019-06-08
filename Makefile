@@ -1,9 +1,10 @@
 #
-#
-#
+# Makefile for 'hidapitester'
+# 2019 Tod E. Kurt, todbot.com
 #
 
-HIDAPI_DIR=../hidapi-libusb
+# overide this with `HIDAPI_DIR make`
+HIDAPI_DIR ?= ../hidapi
 
 # try to do some autodetecting
 UNAME := $(shell uname -s)
@@ -11,13 +12,16 @@ UNAME := $(shell uname -s)
 ifeq "$(UNAME)" "Darwin"
 	OS=macosx
 endif
-
 ifeq "$(OS)" "Windows_NT"
 	OS=windows
 endif
-
 ifeq "$(UNAME)" "Linux"
 	OS=linux
+endif
+
+# deal with stupid Windows not having 'cc'
+ifeq (default,$(origin CC))
+  CC = gcc
 endif
 
 

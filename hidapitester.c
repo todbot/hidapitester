@@ -1,17 +1,9 @@
-// hidapitester.c -- Demonstrate HIDAPI via commandline 
-//
-// Build with:  (assumes you have checked out 'hidapi' into a side directory)
-// Mac:
-//  gcc -I ../hidapi/hidapi ../hidapi/mac/hid.c -framework IOKit -framework CoreFoundation hidapi-enum-tst.c -o hidapi-enum-tst 
-// Linux (hidraw):
-//  gcc -I ../hidapi/hidapi ../hidapi/linux/hid.c -ludev hidapi-enum-tst.c -o hidapi-enum-tst
-// Linux (libusb):
-// gcc -I ../hidapi/hidapi -I /usr/include/libusb-1.0 ../hidapi/libusb/hid.c -lpthread -lusb-1.0 hidapi-enum-tst.c -o hidapi-enum-tst
-//
-// Tod E. Kurt / github.com/todbot
-//
-
-
+/**
+ * hidapitester.c -- Demonstrate HIDAPI via commandline
+ * 
+ * 2019, Tod E. Kurt / github.com/todbot
+ *
+ */
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -45,8 +37,9 @@ static void print_usage(char *myname)
 "  --send-out <datalist>       Send Ouput report to device \n"
 "  --send-feature <datalist>   Send Feature report \n"
 "  --read-feature [reportId]   Read Feature report (w/ report-id) \n"
-"  --len <length>              Set length in bytes of report to send/read \n"
-"  --timeout <msecs>           Timeout in milliseconds to wait for reads \n"            
+"  --len <len>, -l <len>       Set length in bytes of report to send/read \n"
+"  --timeout <msecs>           Timeout in millisecs to wait for input reads \n"
+"  --quiet, -q                 Print out nothing except when reading data \n"
 "", myname);
 }
 
@@ -80,7 +73,9 @@ void msg(char* fmt, ...)
     va_end(args);
 }
 
-// print out a buffer of len bufsize in decimal form
+/**
+ * print out a buffer of len bufsize in decimal form
+ */
 void printbuf(char* buf, int bufsize)
 {
     for (int i = 0; i < bufsize; i++) {
@@ -88,6 +83,9 @@ void printbuf(char* buf, int bufsize)
     }
     printf("\n");
 }
+/**
+ * same but for hex output
+ */
 void printbufhex(uint8_t* buf, int bufsize)
 {
     for( int i=0;i<bufsize;i++) {
@@ -98,24 +96,9 @@ void printbufhex(uint8_t* buf, int bufsize)
 
 /**
  * Parse a comma-delimited 'string' containing numbers (dec,hex)
- * into a byte arr 'buffer'of max length 'buflen',
- * using delimiter 'delim_str'
- * returns number of bytes written
- */
-int hexread0(uint8_t *buffer, char* delim_str, char *string, int buflen)
-{
-    char    *s;
-    int     pos = 0;
-    if( string==NULL ) return -1;
-    memset(buffer,0,buflen);  // bzero() not defined on Win32?
-    while((s = strtok(string, delim_str)) != NULL && pos < buflen){
-        string = NULL;
-        buffer[pos++] = (char)strtol(s, NULL, 0);
-    }
-    return pos;
-}
-/**
- * same as above, but with words  // FIXME
+ * into a array'buffer' (of element size 'bufelem_size') and 
+ * of max length 'buflen', using delimiter 'delim_str'
+ * Returns number of bytes written
  */
 int hexread(void* buffer, char* delim_str, char* string, int buflen, int bufelem_size)
 {
@@ -160,7 +143,7 @@ int main(int argc, char* argv[])
          {"verbose",      optional_argument, 0,      'v'},
          {"quiet",        optional_argument, 0,      'q'},
          {"timeout",      required_argument, 0,      't'},
-         {"len",          required_argument, 0,      'l'},
+         {"length",       required_argument, 0,      'l'},
          {"list",         no_argument,       &cmd,   CMD_LIST},
          {"open",         required_argument, &cmd,   CMD_OPEN},
          {"open-path",    required_argument, &cmd,   CMD_OPEN_PATH},
@@ -193,6 +176,7 @@ int main(int argc, char* argv[])
                     printf("  usage_page: 0x%x, usage: 0x%x,   serial_number: %ls \n",
                            cur_dev->usage_page, cur_dev->usage, cur_dev->serial_number );
                     printf("  path: %s\n",cur_dev->path);
+                    // if we implement find code, it goes like this
                     //if( cur_dev->vendor_id == vid_to_find && cur_dev->product_id == pid_to_find ) { 
                     // && cur_dev->usage_page == 0xFFAB && cur_dev->usage == 0x200 ) {
                     //    printf("Found device!\n");
@@ -207,14 +191,12 @@ int main(int argc, char* argv[])
                 uint16_t vid, pid;
                 int wordbuf[10];
                 int parsedlen = hexread(wordbuf, "/, ", optarg, sizeof(wordbuf), 2);
-                if( parsedlen<1) { // bad read
-                }
-                else if( parsedlen == 2 ) { // vid/pid
+                if( parsedlen == 2 ) { // vid/pid
                     vid = wordbuf[0]; pid = wordbuf[1];
                     msg("Opening device at vid/pid %x/%x\n",vid,pid);
                     dev = hid_open(vid,pid,NULL);
                     if( dev==NULL ) {
-                        msg("error: could not open device\n");
+                        msg("Error: could not open device.\n");
                     }
                 }
                 else if( parsedlen == 4 ) { // vid/pid/usagePage/usage
@@ -252,8 +234,7 @@ int main(int argc, char* argv[])
                 //printbufhex(buf,parsedlen);  // debug
                 
                 if( !dev ) { 
-                    msg("Error: no device opened. use --open before --send...\n");
-                    break;
+                    msg("Error on send: no device opened.\n"); break;
                 }
                 if( cmd == CMD_SEND_OUTPUT ) { 
                     msg("Writing output report of %d-bytes...",buflen);
@@ -266,9 +247,12 @@ int main(int argc, char* argv[])
                 msg("wrote %d bytes\n", res);
             }
             else if( cmd == CMD_READ_INPUT ) {
+                if( !dev ) { 
+                    msg("Error on read: no device opened.\n"); break;
+                }
                 
                 memset(buf,0,buflen);
-                msg("Reading %d-byte input report with %d msec timeout...", buflen,timeout_millis);
+                msg("Reading %d-byte input report, %d msec timeout...", buflen,timeout_millis);
                 res = hid_read_timeout(dev, buf, buflen, timeout_millis);
                 msg("read %d bytes\n", res);
                 msg("Report:\n");
@@ -276,11 +260,14 @@ int main(int argc, char* argv[])
 
             }
             else if( cmd == CMD_READ_FEATURE ) {
+                if( !dev ) { 
+                    msg("Error on read: no device opened.\n"); break;
+                }
                 
                 uint8_t report_id = strtol(optarg,NULL,10);
                 memset(buf,0,buflen);
                 buf[0] = report_id;
-                msg("Reading %d-byte feature report on report_id %d...",buflen, report_id);
+                msg("Reading %d-byte feature report, report_id %d...",buflen, report_id);
                 res = hid_get_feature_report(dev, buf, buflen);
                 msg("read %d bytes\n",res);
                 msg("Report:\n");
