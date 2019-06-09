@@ -238,8 +238,8 @@ int main(int argc, char* argv[])
                     devs = hid_enumerate(vid, pid); // 0,0 = find all devices
                     cur_dev = devs;
                     while (cur_dev) {
-                        if( usage_page && cur_dev->usage_page == usage_page &&
-                            usage && cur_dev->usage == usage) {
+                        if(  (!usage_page || cur_dev->usage_page == usage_page) &&
+                             (!usage || cur_dev->usage == usage) ) {
                             strncpy(devpath, cur_dev->path, MAX_STR); // save it!
                         }
                         cur_dev = cur_dev->next;
