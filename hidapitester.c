@@ -33,13 +33,18 @@ static void print_usage(char *myname)
 "  --open                      Open device with previously selected filters\n"
 "  --open-path <pathstr>       Open device by path (as in --list) \n"
 "  --close                     Close currently open device \n"
-"  --send-output <datalist>    Send Ouput report to device \n"
 "  --send-feature <datalist>   Send Feature report (1st byte reportId, if used)\n"
-"  --read-input <reportId>     Read Input report (w/ reportId, 0 if unused)\n"           
 "  --read-feature <reportId>   Read Feature report (w/ reportId, 0 if unused) \n"
-"  --length <len>, -l <len>    Set length in bytes of report to send/read \n"
+"  --send-output <datalist>    Send Ouput report to device \n"
+"  --read-input [reportId]     Read Input report (w/ opt. reportId, if unused)\n"
+"  --read-input-forever [rId]  Read Input reports in a loop forever \n"
+"  --length <len>, -l <len>    Set buffer length in bytes of report to send/read\n"
 "  --timeout <msecs>           Timeout in millisecs to wait for input reads \n"
 "  --quiet, -q                 Print out nothing except when reading data \n"
+"\n"
+"Commands are executed in order. \n"
+" --vidpid, --usage, --usagePage act as filters to --open and --list \n"
+            
 "", myname);
 }
 
@@ -50,6 +55,7 @@ enum {
     CMD_USAGE,
     CMD_USAGEPAGE,
     CMD_LIST,
+    CMD_LIST_DETAIL,
     CMD_OPEN,
     CMD_OPEN_PATH,
     CMD_CLOSE,
@@ -59,7 +65,6 @@ enum {
     CMD_READ_FEATURE,
     CMD_READ_INPUT_FOREVER,
 };
-
 
 bool msg_quiet = false;
 bool msg_verbose = false;
@@ -146,8 +151,8 @@ int main(int argc, char* argv[])
     int cmd = CMD_NONE;     // 
     int timeout_millis = 250;
     
-    uint16_t vid = 0;        // productId 
-    uint16_t pid = 0;        // vendorId
+    unsigned int vid = 0;        // productId 
+    unsigned int pid = 0;        // vendorId
     uint16_t usage_page = 0; // usagePage to search for, if any
     uint16_t usage = 0;      // usage to search for, if any
     char devpath[MAX_STR];   // path to open, if filter by usage
@@ -171,6 +176,7 @@ int main(int argc, char* argv[])
          {"usage",        required_argument, &cmd,   CMD_USAGE},
          {"usagePage",    required_argument, &cmd,   CMD_USAGEPAGE},
          {"list",         no_argument,       &cmd,   CMD_LIST},
+         {"list-detail",  no_argument,       &cmd,   CMD_LIST_DETAIL},
          {"open",         no_argument,       &cmd,   CMD_OPEN},
          {"open-path",    required_argument, &cmd,   CMD_OPEN_PATH},
          {"close",        no_argument,       &cmd,   CMD_CLOSE},
@@ -183,44 +189,30 @@ int main(int argc, char* argv[])
          {"read-input-forever",  optional_argument, &cmd,   CMD_READ_INPUT_FOREVER},
          {NULL,0,0,0}
         };
-    
+    char* shortopts = "vht:l:q";
+
     bool done = false;
     int option_index = 0, opt;
-    char* opt_str = "vht:l:q";
     while(!done) {
-        memset(buf,0, MAX_BUF); // reset buffers
+        memset(buf,0, MAX_BUF);   // reset buffers
         memset(devpath,0,MAX_STR);
 
-        opt = getopt_long(argc, argv, opt_str, longoptions, &option_index);
+        opt = getopt_long(argc, argv, shortopts, longoptions, &option_index);
         if (opt==-1) done = true; // parsed all the args
         switch(opt) {
-        case 0:  // long opts with no short opts
+        case 0:                   // long opts with no short opts
             
-            if( cmd == CMD_LIST ) {
+            if( cmd == CMD_VIDPID ) {
                 
-                struct hid_device_info *devs, *cur_dev;
-                devs = hid_enumerate(vid, pid); // 0,0 = find all devices
-                cur_dev = devs;
-                while (cur_dev) {
-                    if(  (!usage_page || cur_dev->usage_page == usage_page) &&
-                         (!usage || cur_dev->usage == usage) ) {
-                        printf("Device: '%ls' by '%ls'\n", cur_dev->product_string, cur_dev->manufacturer_string);
-                        printf("  vid/pid: 0x%04hX / 0x%04hX\n",cur_dev->vendor_id, cur_dev->product_id);
-                        printf("  usagePage / usage: 0x%x / 0x%x,   serial_number: %ls \n",
-                               cur_dev->usage_page, cur_dev->usage, cur_dev->serial_number );
-                        printf("  path: %s\n",cur_dev->path);
+                if( !sscanf(optarg, "%4x/%4x", &vid,&pid) ) {  // match "23FE/AB12"
+                    if( !scanf(optarg, "%4x:%4x", &vid,&pid) ) { // match "23FE:AB12" 
+                        // else try parsing standard dec or hex values
+                        int wordbuf[4]; // a little extra space
+                        int parsedlen = hexread(wordbuf, ":/, ", optarg, sizeof(wordbuf), 2);
+                        vid = wordbuf[0]; pid = wordbuf[1];
                     }
-                    cur_dev = cur_dev->next;
                 }
-                hid_free_enumeration(devs);
-            }
-            else if( cmd == CMD_VIDPID ) {
-                
-                int wordbuf[10];
-                int parsedlen = hexread(wordbuf, "/, ", optarg, sizeof(wordbuf), 2);
-                vid = wordbuf[0]; pid = wordbuf[1];
                 msg("Looking for vid/pid 0x%04X / 0x%04X\n",vid,pid);
-
             }
             else if( cmd == CMD_USAGEPAGE ) {
 
@@ -231,6 +223,29 @@ int main(int argc, char* argv[])
 
                 usage = strtol(optarg,NULL,0);
                 msginfo("Set usage to 0x%04X\n", usage);
+            }
+            else if( cmd == CMD_LIST ||
+                     cmd == CMD_LIST_DETAIL ) {
+
+                struct hid_device_info *devs, *cur_dev;
+                devs = hid_enumerate(vid,pid); // 0,0 = find all devices
+                cur_dev = devs;
+                while (cur_dev) {
+                    if( (!usage_page || cur_dev->usage_page == usage_page) &&
+                        (!usage || cur_dev->usage == usage) ) {
+                        printf("%04X/%04X: %ls - %ls\n",
+                               cur_dev->vendor_id, cur_dev->product_id,
+                               cur_dev->manufacturer_string, cur_dev->product_string );
+                        if( cmd == CMD_LIST_DETAIL ) { 
+                            printf("    usagePage / usage: 0x%X / 0x%X\n",
+                                   cur_dev->usage_page, cur_dev->usage );
+                            printf("    serial_number: %ls \n", cur_dev->serial_number);
+                            printf("    path: %s\n",cur_dev->path);
+                        }
+                    }
+                    cur_dev = cur_dev->next;
+                }
+                hid_free_enumeration(devs);
             }
             else if( cmd == CMD_OPEN ) {
 
