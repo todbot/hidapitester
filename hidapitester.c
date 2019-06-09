@@ -33,9 +33,10 @@ static void print_usage(char *myname)
 "  --open                      Open device with previously selected filters\n"
 "  --open-path <pathstr>       Open device by path (as in --list) \n"
 "  --close                     Close currently open device \n"
-"  --send-out <datalist>       Send Ouput report to device \n"
-"  --send-feature <datalist>   Send Feature report (first byte reportId, if used)\n"
-"  --read-feature <reportId>   Read Feature report (w/ report-id, 0 if unused) \n"
+"  --send-output <datalist>    Send Ouput report to device \n"
+"  --send-feature <datalist>   Send Feature report (1st byte reportId, if used)\n"
+"  --read-input <reportId>     Read Input report (w/ reportId, 0 if unused)\n"           
+"  --read-feature <reportId>   Read Feature report (w/ reportId, 0 if unused) \n"
 "  --length <len>, -l <len>    Set length in bytes of report to send/read \n"
 "  --timeout <msecs>           Timeout in millisecs to wait for input reads \n"
 "  --quiet, -q                 Print out nothing except when reading data \n"
@@ -56,6 +57,7 @@ enum {
     CMD_SEND_FEATURE,
     CMD_READ_INPUT,
     CMD_READ_FEATURE,
+    CMD_READ_INPUT_FOREVER,
 };
 
 
@@ -89,7 +91,7 @@ void msginfo(char* fmt, ...)
 void printbuf(char* buf, int bufsize)
 {
     for (int i = 0; i < bufsize; i++) {
-        printf("%d,", buf[i]);
+        printf("%d ", buf[i]);
     }
     printf("\n");
 }
@@ -100,7 +102,7 @@ void printbuf(char* buf, int bufsize)
 void printbufhex(uint8_t* buf, int bufsize)
 {
     for( int i=0;i<bufsize;i++) {
-       printf("%02X ", buf[i] );
+       printf(" %02X", buf[i] );
        if (i % 16 == 15 && i < bufsize-1) printf("\n");
     }
     printf("\n");
@@ -173,9 +175,12 @@ int main(int argc, char* argv[])
          {"open-path",    required_argument, &cmd,   CMD_OPEN_PATH},
          {"close",        no_argument,       &cmd,   CMD_CLOSE},
          {"send-output",  required_argument, &cmd,   CMD_SEND_OUTPUT},
+         {"send-out",     required_argument, &cmd,   CMD_SEND_OUTPUT},
          {"send-feature", required_argument, &cmd,   CMD_SEND_FEATURE},
          {"read-input",   required_argument, &cmd,   CMD_READ_INPUT},
+         {"read-in",      required_argument, &cmd,   CMD_READ_INPUT},
          {"read-feature", required_argument, &cmd,   CMD_READ_FEATURE},
+         {"read-input-forever",  required_argument, &cmd,   CMD_READ_INPUT_FOREVER},
          {NULL,0,0,0}
         };
     
@@ -218,7 +223,7 @@ int main(int argc, char* argv[])
             }
             else if( cmd == CMD_USAGEPAGE ) {
                 usage_page = strtol(optarg,NULL,0);
-                msginfo("Set usagePage to 0x%04X (%s)\n", usage_page, optarg);
+                msginfo("Set usagePage to 0x%04X\n", usage_page);
             }
             else if( cmd == CMD_USAGE ) {
                 usage = strtol(optarg,NULL,0);
@@ -298,34 +303,42 @@ int main(int argc, char* argv[])
                     msg("Writing %d-byte feature report...",buflen);
                     res = hid_send_feature_report(dev, buf, buflen);
                 }
-                msg("wrote %d bytes\n", res);
+                msg("wrote %d bytes:\n", res);
+                if(!msg_quiet) { printbufhex(buf,buflen); }
             }
-            else if( cmd == CMD_READ_INPUT ) {
+            else if( cmd == CMD_READ_INPUT ||
+                     cmd == CMD_READ_INPUT_FOREVER ) {
+
                 if( !dev ) { 
                     msg("Error on read: no device opened.\n"); break;
                 }
-                
-                msg("Reading %d-byte input report, %d msec timeout...", buflen,timeout_millis);
-                res = hid_read_timeout(dev, buf, buflen, timeout_millis);
-                msg("read %d bytes\n", res);
-                msg("Report:\n");
-                printbufhex(buf,buflen);
-
+                if( !buflen) {
+                    msg("Error on read: buffer length is 0. Use --len to specify.\n"); break;
+                }
+                do { 
+                    msg("Reading %d-byte input report, %d msec timeout...", buflen,timeout_millis);
+                    res = hid_read_timeout(dev, buf, buflen, timeout_millis);
+                    msg("read %d bytes:\n", res);
+                    printbufhex(buf,buflen);
+                } while( cmd == CMD_READ_INPUT_FOREVER );
             }
             else if( cmd == CMD_READ_FEATURE ) {
                 if( !dev ) { 
                     msg("Error on read: no device opened.\n"); break;
                 }
-                
+                if( !buflen) {
+                    msg("Error on read: buffer length is 0. Use --len to specify.\n");
+                    break;
+                }
                 uint8_t report_id = strtol(optarg,NULL,10);
                 memset(buf,0,buflen);
                 buf[0] = report_id;
                 msg("Reading %d-byte feature report, report_id %d...",buflen, report_id);
                 res = hid_get_feature_report(dev, buf, buflen);
-                msg("read %d bytes\n",res);
-                msg("Report:\n");
+                msg("read %d bytes:\n",res);
                 printbufhex(buf, buflen);
             }
+
             
             break; // case 0
         case 'h':
