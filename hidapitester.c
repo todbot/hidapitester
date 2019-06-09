@@ -177,10 +177,10 @@ int main(int argc, char* argv[])
          {"send-output",  required_argument, &cmd,   CMD_SEND_OUTPUT},
          {"send-out",     required_argument, &cmd,   CMD_SEND_OUTPUT},
          {"send-feature", required_argument, &cmd,   CMD_SEND_FEATURE},
-         {"read-input",   required_argument, &cmd,   CMD_READ_INPUT},
-         {"read-in",      required_argument, &cmd,   CMD_READ_INPUT},
+         {"read-input",   optional_argument, &cmd,   CMD_READ_INPUT},
+         {"read-in",      optional_argument, &cmd,   CMD_READ_INPUT},
          {"read-feature", required_argument, &cmd,   CMD_READ_FEATURE},
-         {"read-input-forever",  required_argument, &cmd,   CMD_READ_INPUT_FOREVER},
+         {"read-input-forever",  optional_argument, &cmd,   CMD_READ_INPUT_FOREVER},
          {NULL,0,0,0}
         };
     
@@ -197,6 +197,7 @@ int main(int argc, char* argv[])
         case 0:  // long opts with no short opts
             
             if( cmd == CMD_LIST ) {
+                
                 struct hid_device_info *devs, *cur_dev;
                 devs = hid_enumerate(vid, pid); // 0,0 = find all devices
                 cur_dev = devs;
@@ -222,10 +223,12 @@ int main(int argc, char* argv[])
 
             }
             else if( cmd == CMD_USAGEPAGE ) {
+
                 usage_page = strtol(optarg,NULL,0);
                 msginfo("Set usagePage to 0x%04X\n", usage_page);
             }
             else if( cmd == CMD_USAGE ) {
+
                 usage = strtol(optarg,NULL,0);
                 msginfo("Set usage to 0x%04X\n", usage);
             }
@@ -290,7 +293,6 @@ int main(int argc, char* argv[])
                     break;
                 }
                 buflen = (!buflen) ? parsedlen : buflen;
-                //printbufhex(buf,parsedlen);  // debug
                 
                 if( !dev ) { 
                     msg("Error on send: no device opened.\n"); break;
@@ -315,6 +317,7 @@ int main(int argc, char* argv[])
                 if( !buflen) {
                     msg("Error on read: buffer length is 0. Use --len to specify.\n"); break;
                 }
+                uint8_t report_id = (optarg) ? strtol(optarg,NULL,10) : 0;
                 do { 
                     msg("Reading %d-byte input report, %d msec timeout...", buflen,timeout_millis);
                     res = hid_read_timeout(dev, buf, buflen, timeout_millis);
@@ -323,6 +326,7 @@ int main(int argc, char* argv[])
                 } while( cmd == CMD_READ_INPUT_FOREVER );
             }
             else if( cmd == CMD_READ_FEATURE ) {
+                
                 if( !dev ) { 
                     msg("Error on read: no device opened.\n"); break;
                 }
@@ -330,17 +334,16 @@ int main(int argc, char* argv[])
                     msg("Error on read: buffer length is 0. Use --len to specify.\n");
                     break;
                 }
-                uint8_t report_id = strtol(optarg,NULL,10);
-                memset(buf,0,buflen);
+                uint8_t report_id = (optarg) ? strtol(optarg,NULL,10) : 0;
+                //uint8_t report_id = strtol(optarg,NULL,10);
                 buf[0] = report_id;
                 msg("Reading %d-byte feature report, report_id %d...",buflen, report_id);
                 res = hid_get_feature_report(dev, buf, buflen);
                 msg("read %d bytes:\n",res);
                 printbufhex(buf, buflen);
             }
-
             
-            break; // case 0
+            break; // case 0 (longopts without shortops)
         case 'h':
             print_usage("hidapitester");
             break;
@@ -360,12 +363,14 @@ int main(int argc, char* argv[])
             break;
         } // switch(opt)
         
-        if(dev) {
-            // hid_close(dev);
-        }
-        res = hid_exit();
         
     } // while(!done)
     
+    if(dev) {
+        msg("Closing device\n");
+        hid_close(dev);
+    }
+    res = hid_exit();
+
 } // main
 
