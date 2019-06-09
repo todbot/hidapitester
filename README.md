@@ -8,6 +8,12 @@ Simple command-line program to test HIDAPI
 - Windows
 
 
+### Testing
+- The "TeensyRawHid" directory contains an Arduino sketch for Teensy.
+It sends 64-byte Input reports every second.
+It receives 64-byte Output reports, and prints them to Serial Monitor.
+
+
 ## Examples
 
 ```
