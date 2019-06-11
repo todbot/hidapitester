@@ -29,9 +29,10 @@ static void print_usage(char *myname)
 "  --vidpid <vid/pid>          Filter by vendorId/productId (comma/slash delim)\n"
 "  --usagePage <number>        Filter by usagePage \n"
 "  --usage <number>            Filter by usage \n"
-"  --list                      List connected HID devices (by filters)\n"
+"  --list                      List HID devices (by filters)\n"
+"  --list-detail               List HID devices w/ details (by filters)\n"
 "  --open                      Open device with previously selected filters\n"
-"  --open-path <pathstr>       Open device by path (as in --list) \n"
+"  --open-path <pathstr>       Open device by path (as in --list-detail) \n"
 "  --close                     Close currently open device \n"
 "  --send-feature <datalist>   Send Feature report (1st byte reportId, if used)\n"
 "  --read-feature <reportId>   Read Feature report (w/ reportId, 0 if unused) \n"
@@ -40,10 +41,27 @@ static void print_usage(char *myname)
 "  --read-input-forever [rId]  Read Input reports in a loop forever \n"
 "  --length <len>, -l <len>    Set buffer length in bytes of report to send/read\n"
 "  --timeout <msecs>           Timeout in millisecs to wait for input reads \n"
+"  --base <base>, -b <base>    Set decimal or hex buffer print mode\n"            
 "  --quiet, -q                 Print out nothing except when reading data \n"
+"  --verbose, -v               Print out extra information\n"
 "\n"
-"Commands are executed in order. \n"
-" --vidpid, --usage, --usagePage act as filters to --open and --list \n"
+"Notes: \n"
+" . Commands are executed in order. \n"
+" . --vidpid, --usage, --usagePage act as filters to --open and --list \n"
+"\n"
+"Examples: \n"
+". List all devices \n"
+"  hidapitester --list \n"
+". List details of all devices w/ vendorId 0x2341 \n"
+"  hidapitester --vidpid 2341 --list-detail \n"
+". Open device with usagePage 0xFFAB, send Feature report on reportId 1\n"
+"  hidapitester -l 9 --usagePage 0xFFAB --open --send-feature 1,99,44,22 \n"
+". Open vid/pid xxxx:yyyy, send 64-byte Output report, read 64-byte Input report\n"
+"  hidapitester --vidpid xxxx:yyyy -l 64 --open --send-output 1,2,3 --read-input \n"
+". Read Input report continuously with 1500 msec timeout \n"
+"  hidapitester --vidpid xxxx:yyyy -l 64 -t 1500 --open --read-input-forever\n"
+            
+""
             
 "", myname);
 }
@@ -69,6 +87,8 @@ enum {
 bool msg_quiet = false;
 bool msg_verbose = false;
 
+int print_base = 16;
+
 /**
  * printf that can be shut up
  */
@@ -91,23 +111,16 @@ void msginfo(char* fmt, ...)
 }
 
 /**
- * print out a buffer of len bufsize in decimal form
+ * print out a buffer of len bufsize in decimal or hex form
  */
-void printbuf(char* buf, int bufsize)
+void printbuf(uint8_t* buf, int bufsize, int base)
 {
-    for (int i = 0; i < bufsize; i++) {
-        printf("%d ", buf[i]);
-    }
-    printf("\n");
-}
-/**
- * Print out a buffer of len bufsize in hex form, 
- * wrapping every 16 bytes 
- */
-void printbufhex(uint8_t* buf, int bufsize)
-{
-    for( int i=0;i<bufsize;i++) {
-       printf(" %02X", buf[i] );
+    for( int i=0 ; i<bufsize; i++) {
+        if( base==10 ) {
+            printf(" %3d", buf[i]);
+        } else if( base==16 ) {
+            printf(" %02X", buf[i] );
+        }
        if (i % 16 == 15 && i < bufsize-1) printf("\n");
     }
     printf("\n");
@@ -119,7 +132,7 @@ void printbufhex(uint8_t* buf, int bufsize)
  * of max length 'buflen', using delimiter 'delim_str'
  * Returns number of bytes written
  */
-int hexread(void* buffer, char* delim_str, char* string, int buflen, int bufelem_size)
+int str2buf(void* buffer, char* delim_str, char* string, int buflen, int bufelem_size)
 {
     char    *s;
     int     pos = 0;
@@ -147,12 +160,12 @@ int main(int argc, char* argv[])
     hid_device *dev = NULL; // HIDAPI device we will open
     int res;
     int i;
-    int buflen = 0;         // length of buf in use
+    int buflen = 64;        // length of buf in use
     int cmd = CMD_NONE;     // 
     int timeout_millis = 250;
     
-    unsigned int vid = 0;        // productId 
-    unsigned int pid = 0;        // vendorId
+    uint16_t vid = 0;        // productId 
+    uint16_t pid = 0;        // vendorId
     uint16_t usage_page = 0; // usagePage to search for, if any
     uint16_t usage = 0;      // usage to search for, if any
     char devpath[MAX_STR];   // path to open, if filter by usage
@@ -172,6 +185,7 @@ int main(int argc, char* argv[])
          {"timeout",      required_argument, 0,      't'},
          {"length",       required_argument, 0,      'l'},
          {"buflen",       required_argument, 0,      'l'},
+         {"base",         required_argument, 0,      'b'},
          {"vidpid",       required_argument, &cmd,   CMD_VIDPID},
          {"usage",        required_argument, &cmd,   CMD_USAGE},
          {"usagePage",    required_argument, &cmd,   CMD_USAGEPAGE},
@@ -189,7 +203,7 @@ int main(int argc, char* argv[])
          {"read-input-forever",  optional_argument, &cmd,   CMD_READ_INPUT_FOREVER},
          {NULL,0,0,0}
         };
-    char* shortopts = "vht:l:q";
+    char* shortopts = "vht:l:qb:";
 
     bool done = false;
     int option_index = 0, opt;
@@ -204,25 +218,30 @@ int main(int argc, char* argv[])
             
             if( cmd == CMD_VIDPID ) {
                 
-                if( !sscanf(optarg, "%4x/%4x", &vid,&pid) ) {  // match "23FE/AB12"
-                    if( !scanf(optarg, "%4x:%4x", &vid,&pid) ) { // match "23FE:AB12" 
-                        // else try parsing standard dec or hex values
+                if( sscanf(optarg, "%4hx/%4hx", &vid,&pid) !=2 ) {  // match "23FE/AB12"
+                    if( !sscanf(optarg, "%4hx:%4hx", &vid,&pid) ) { // match "23FE:AB12" 
+                        // else try parsing standard dec/hex values
                         int wordbuf[4]; // a little extra space
-                        int parsedlen = hexread(wordbuf, ":/, ", optarg, sizeof(wordbuf), 2);
+                        int parsedlen = str2buf(wordbuf, ":/, ", optarg, sizeof(wordbuf), 2);
                         vid = wordbuf[0]; pid = wordbuf[1];
                     }
                 }
-                msg("Looking for vid/pid 0x%04X / 0x%04X\n",vid,pid);
+                msginfo("Looking for vid/pid 0x%04X / 0x%04X  (%d / %d)\n",vid,pid,vid,pid);
             }
             else if( cmd == CMD_USAGEPAGE ) {
 
-                usage_page = strtol(optarg,NULL,0);
-                msginfo("Set usagePage to 0x%04X\n", usage_page);
+                if( (usage_page = strtol(optarg,NULL,0)) == 0 ) { // if bad parse
+                    sscanf(optarg, "%4hx", &usage_page ); // try bare "ABCD"
+                }
+
+                msginfo("Set usagePage to 0x%04hX (%d)\n", usage_page,usage_page);
             }
             else if( cmd == CMD_USAGE ) {
 
-                usage = strtol(optarg,NULL,0);
-                msginfo("Set usage to 0x%04X\n", usage);
+                if( (usage = strtol(optarg,NULL,0)) == 0 ) { // if bad parse
+                    sscanf(optarg, "%4hx", &usage ); // try bare "ABCD"
+                }
+                msginfo("Set usage to 0x%04hX (%d)\n", usage,usage);
             }
             else if( cmd == CMD_LIST ||
                      cmd == CMD_LIST_DETAIL ) {
@@ -237,10 +256,11 @@ int main(int argc, char* argv[])
                                cur_dev->vendor_id, cur_dev->product_id,
                                cur_dev->manufacturer_string, cur_dev->product_string );
                         if( cmd == CMD_LIST_DETAIL ) { 
-                            printf("    usagePage / usage: 0x%X / 0x%X\n",
-                                   cur_dev->usage_page, cur_dev->usage );
-                            printf("    serial_number: %ls \n", cur_dev->serial_number);
-                            printf("    path: %s\n",cur_dev->path);
+                            printf("  usagePage:     0x%04hX\n", cur_dev->usage_page);
+                            printf("  usage:         0x%04hX\n", cur_dev->usage );
+                            printf("  serial_number: %ls \n", cur_dev->serial_number);
+                            printf("  interface:     %d \n", cur_dev->interface_number);
+                            printf("  path: %s\n",cur_dev->path);
                         }
                     }
                     cur_dev = cur_dev->next;
@@ -248,8 +268,7 @@ int main(int argc, char* argv[])
                 hid_free_enumeration(devs);
             }
             else if( cmd == CMD_OPEN ) {
-
-                if( !usage_page && !usage ) {
+                if( vid && pid && !usage_page && !usage ) {
                     msg("Opening device, vid/pid: 0x%04X/0x%04X\n",vid,pid);
                     dev = hid_open(vid,pid,NULL);
                 }
@@ -261,8 +280,10 @@ int main(int argc, char* argv[])
                     devs = hid_enumerate(vid, pid); // 0,0 = find all devices
                     cur_dev = devs;
                     while (cur_dev) {
-                        if(  (!usage_page || cur_dev->usage_page == usage_page) &&
-                             (!usage || cur_dev->usage == usage) ) {
+                        if( (!vid || cur_dev->vendor_id == vid) &&
+                            (!pid || cur_dev->product_id == pid) &&
+                            (!usage_page || cur_dev->usage_page == usage_page) &&
+                            (!usage || cur_dev->usage == usage) ) {
                             strncpy(devpath, cur_dev->path, MAX_STR); // save it!
                         }
                         cur_dev = cur_dev->next;
@@ -302,7 +323,7 @@ int main(int argc, char* argv[])
             else if( cmd == CMD_SEND_OUTPUT  ||
                      cmd == CMD_SEND_FEATURE ) {
                 
-                int parsedlen = hexread(buf, ", ", optarg, sizeof(buf), 1);
+                int parsedlen = str2buf(buf, ", ", optarg, sizeof(buf), 1);
                 if( parsedlen<1 ) { // no bytes or error
                     msg("Error: no bytes read as arg to --send...");
                     break;
@@ -321,7 +342,7 @@ int main(int argc, char* argv[])
                     res = hid_send_feature_report(dev, buf, buflen);
                 }
                 msg("wrote %d bytes:\n", res);
-                if(!msg_quiet) { printbufhex(buf,buflen); }
+                if(!msg_quiet) { printbuf(buf,buflen, print_base); }
             }
             else if( cmd == CMD_READ_INPUT ||
                      cmd == CMD_READ_INPUT_FOREVER ) {
@@ -337,7 +358,7 @@ int main(int argc, char* argv[])
                     msg("Reading %d-byte input report, %d msec timeout...", buflen,timeout_millis);
                     res = hid_read_timeout(dev, buf, buflen, timeout_millis);
                     msg("read %d bytes:\n", res);
-                    printbufhex(buf,buflen);
+                    printbuf(buf,buflen, print_base);
                 } while( cmd == CMD_READ_INPUT_FOREVER );
             }
             else if( cmd == CMD_READ_FEATURE ) {
@@ -350,12 +371,11 @@ int main(int argc, char* argv[])
                     break;
                 }
                 uint8_t report_id = (optarg) ? strtol(optarg,NULL,10) : 0;
-                //uint8_t report_id = strtol(optarg,NULL,10);
                 buf[0] = report_id;
                 msg("Reading %d-byte feature report, report_id %d...",buflen, report_id);
                 res = hid_get_feature_report(dev, buf, buflen);
                 msg("read %d bytes:\n",res);
-                printbufhex(buf, buflen);
+                printbuf(buf, buflen, print_base);
             }
             
             break; // case 0 (longopts without shortops)
@@ -369,6 +389,10 @@ int main(int argc, char* argv[])
         case 't':
             timeout_millis = strtol(optarg,NULL,10);
             msginfo("Set timeout_millis to %d\n", timeout_millis);
+            break;
+        case 'b':
+            print_base = strtol(optarg,NULL,10);
+            msginfo("Set print_base to %d\n", print_base);
             break;
         case 'q':
             msg_quiet = true;
