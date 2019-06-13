@@ -6,7 +6,7 @@ The point of `hidapitester` is to provide a simple low-dependency
 command-line tool to test out every API call in
 [hidapi](https://github.com/libusb/hidapi).
 
-<img src="./docs/screencast1.svg with="700"/>
+<img src="./docs/screencast1.svg width="700"/>
 
 
 ## Prebuilt binaries
