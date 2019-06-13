@@ -255,7 +255,9 @@ int main(int argc, char* argv[])
                         printf("%04X/%04X: %ls - %ls\n",
                                cur_dev->vendor_id, cur_dev->product_id,
                                cur_dev->manufacturer_string, cur_dev->product_string );
-                        if( cmd == CMD_LIST_DETAIL ) { 
+                        if( cmd == CMD_LIST_DETAIL ) {
+                            printf("  vendorId:      0x%04hX\n", cur_dev->vendor_id);
+                            printf("  productId:     0x%04hX\n", cur_dev->product_id);
                             printf("  usagePage:     0x%04hX\n", cur_dev->usage_page);
                             printf("  usage:         0x%04hX\n", cur_dev->usage );
                             printf("  serial_number: %ls \n", cur_dev->serial_number);
