@@ -48,6 +48,28 @@ On Windows
 
 On Linux
 - Install udev
+```
+sudo apt install libudev1 libudev-dev pkg-config python
+```
 
+## Random notes
 
+* To do termianl screencast gifs (on Linux):
+
+```
+sudo apt install asciinema
+sudo apt install gifsicle
+npm install --global asciicast2gif
+asciinema rec foo.cast
+[do what you want]
+asciicast2gif  foo.cast foo.gif
+```
+
+or just use `termtosvg`:
+```
+pip3 install --user termtosvg
+termtosvg foo.svg
+[do what you want, type 'exit' to stop shell]
+
+```
 

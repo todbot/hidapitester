@@ -261,6 +261,7 @@ int main(int argc, char* argv[])
                             printf("  serial_number: %ls \n", cur_dev->serial_number);
                             printf("  interface:     %d \n", cur_dev->interface_number);
                             printf("  path: %s\n",cur_dev->path);
+                            printf("\n");
                         }
                     }
                     cur_dev = cur_dev->next;
