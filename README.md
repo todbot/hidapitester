@@ -181,7 +181,7 @@ sudo apt install libudev1 libudev-dev pkg-config python
 
 ## Random notes
 
-* To do termianl screencast gifs (on Linux):
+* To do terminal screencast gifs (on Linux):
 
 ```
 sudo apt install asciinema
