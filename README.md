@@ -6,13 +6,14 @@ The point of `hidapitester` is to provide a simple low-dependency
 command-line tool to test out every API call in
 [hidapi](https://github.com/libusb/hidapi).
 
-<img src="./docs/screencast1.svg width="700"/>
+<img src="./docs/screencast1.gif" width="500">
+
 
 
 ## Prebuilt binaries
 
 See the [hidapitester releases page](https://github.com/todbot/hidapitester/releases)
-for builds for"
+for builds for:
 
 - Mac OS X
 - Linux (Ubuntu x64)
@@ -80,6 +81,7 @@ is the data to send: `--send-output 1,2,0xff,30,40,0x50`.
 If using reportIds, the first byte is the reportId.
 If not using reportIds, the first byte should be `0`.
 The length of the actual report is set by `--length <num>`.
+
 Thus to send a 16-byte report on reportId 3 with only the 1st byte set to "42":
 ```
 hidapitester [...] --length 16 --send-output 3,42
@@ -91,6 +93,7 @@ Read Input reports from device with `--read-input`.  If using reportIds,
 the argument should be the reportId number: `--read-input 1`.  The length to read is
 specified by the `--length` argument.  If using reportIds, this length should be one
 more than the buffer to read (e.g. if the report is 16-bytes, length is 17).
+
 So to read a 16-byte report on reportId 3:
 ```
 hidapitester [...] --length 17 --read-input 3
@@ -175,28 +178,5 @@ On Linux
 - Install udev, pkg-config, and python
 ```
 sudo apt install libudev1 libudev-dev pkg-config python
-```
-
-
-
-## Random notes
-
-* To do terminal screencast gifs (on Linux):
-
-```
-sudo apt install asciinema
-sudo apt install gifsicle
-npm install --global asciicast2gif
-asciinema rec foo.cast
-[do what you want]
-asciicast2gif  foo.cast foo.gif
-```
-
-or just use `termtosvg`:
-```
-pip3 install --user termtosvg
-termtosvg foo.svg
-[do what you want, type 'exit' to stop shell]
-
 ```
 
