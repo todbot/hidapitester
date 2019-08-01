@@ -22,13 +22,16 @@
 const int pinLed = LED_BUILTIN;
 const int pinButton = 2;
 
+//const int rateMillis = 2000;
+const int rateMillis = 1000;
+
 // Buffer to hold RawHID data.
 // If host tries to send more data than this,
 // it will respond with an error.
 // If the data is not read until the host sends the next data
 // it will also respond with an error and the data will be lost.
 uint8_t rawhidData[120];
-uint8_t featureData[16];
+uint8_t featureData[64];
 
 void setup() {
   pinMode(pinLed, OUTPUT);
@@ -51,20 +54,20 @@ void loop() {
     // Send data to the host
     //  if (!digitalRead(pinButton)) {
     // every 2 seconds, send a packet to the computer
-    if( (nextMillis - millis()) > 2000) {
-        nextMillis = millis() + 2000;
+    if( (nextMillis - millis()) > rateMillis) {
+        nextMillis = millis() + rateMillis;
     
         digitalWrite(pinLed, HIGH);
         Serial.print(millis());
         Serial.println(": sending packet");
     
         // Create buffer with numbers and send it
-        uint8_t megabuff[100];
+        uint8_t megabuff[64];
         for (uint8_t i = 0; i < sizeof(megabuff); i++) {
             megabuff[i] = i;
         }
         RawHID.write(megabuff, sizeof(megabuff));
-
+        
         digitalWrite(pinLed, LOW);
     }
 
