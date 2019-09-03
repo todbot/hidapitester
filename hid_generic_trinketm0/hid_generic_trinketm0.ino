@@ -44,8 +44,12 @@
 #include "Adafruit_TinyUSB.h"
 
 // pick one
-#define MODE  MODE_TEENSY
+//#define MODE  MODE_INOUT_NO_REPORTID
+#define MODE  MODE_INOUT_WITH_REPORTIDS
+//#define MODE  MODE_FEATURE_NO_REPORTID
+//#define MODE  MODE_FEATURE_WITH_REPORTIDS
 //#define MODE  MODE_BLINK1
+//#define MODE  MODE_TEENSY
 
 #include "descriptors.h"
 
@@ -80,7 +84,7 @@ void setup()
 
 void loop()
 {
-    Serial.printf("MODE:%s... size0:%d, size1:%d\n",MODE_STR,size0,size1); 
+    Serial.printf("MODE:%s... \n",MODE_STR); 
     if( Serial.available() ) { 
         int c = Serial.read();
         Serial.printf("read:%c\n",(char)c);
