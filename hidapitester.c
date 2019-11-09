@@ -1,6 +1,6 @@
 /**
  * hidapitester.c -- Demonstrate HIDAPI via commandline
- * 
+ *
  * 2019, Tod E. Kurt / github.com/todbot
  *
  */
@@ -11,7 +11,7 @@
 #include <string.h>
 #include <stdint.h>
 #include <stdbool.h>
-#include <getopt.h> 
+#include <getopt.h>
 
 #include "hidapi.h"
 
@@ -41,7 +41,7 @@ static void print_usage(char *myname)
 "  --read-input-forever [rId]  Read Input reports in a loop forever \n"
 "  --length <len>, -l <len>    Set buffer length in bytes of report to send/read\n"
 "  --timeout <msecs>           Timeout in millisecs to wait for input reads \n"
-"  --base <base>, -b <base>    Set decimal or hex buffer print mode\n"            
+"  --base <base>, -b <base>    Set decimal or hex buffer print mode\n"
 "  --quiet, -q                 Print out nothing except when reading data \n"
 "  --verbose, -v               Print out extra information\n"
 "\n"
@@ -60,14 +60,14 @@ static void print_usage(char *myname)
 "  hidapitester --vidpid xxxx:yyyy -l 64 --open --send-output 1,2,3 --read-input \n"
 ". Read Input report continuously with 1500 msec timeout \n"
 "  hidapitester --vidpid xxxx:yyyy -l 64 -t 1500 --open --read-input-forever\n"
-            
+
 ""
-            
+
 "", myname);
 }
 
 // local states for the "cmd" option variable
-enum { 
+enum {
     CMD_NONE = 0,
     CMD_VIDPID,
     CMD_USAGE,
@@ -106,7 +106,7 @@ void msginfo(char* fmt, ...)
 {
     va_list args;
     va_start(args,fmt);
-    if(msg_verbose) { vprintf(fmt,args); } 
+    if(msg_verbose) { vprintf(fmt,args); }
     va_end(args);
 }
 
@@ -128,7 +128,7 @@ void printbuf(uint8_t* buf, int bufsize, int base)
 
 /**
  * Parse a comma-delimited 'string' containing numbers (dec,hex)
- * into a array'buffer' (of element size 'bufelem_size') and 
+ * into a array'buffer' (of element size 'bufelem_size') and
  * of max length 'buflen', using delimiter 'delim_str'
  * Returns number of bytes written
  */
@@ -140,7 +140,7 @@ int str2buf(void* buffer, char* delim_str, char* string, int buflen, int bufelem
     memset(buffer,0,buflen);  // bzero() not defined on Win32?
     while((s = strtok(string, delim_str)) != NULL && pos < buflen){
         string = NULL;
-        switch(bufelem_size) { 
+        switch(bufelem_size) {
         case 1:
             ((uint8_t*)buffer)[pos++] = (uint8_t)strtol(s, NULL, 0); break;
         case 2:
@@ -161,22 +161,22 @@ int main(int argc, char* argv[])
     int res;
     int i;
     int buflen = 64;        // length of buf in use
-    int cmd = CMD_NONE;     // 
+    int cmd = CMD_NONE;     //
     int timeout_millis = 250;
-    
-    uint16_t vid = 0;        // productId 
+
+    uint16_t vid = 0;        // productId
     uint16_t pid = 0;        // vendorId
     uint16_t usage_page = 0; // usagePage to search for, if any
     uint16_t usage = 0;      // usage to search for, if any
     char devpath[MAX_STR];   // path to open, if filter by usage
 
     setbuf(stdout, NULL);  // turn off buffering of stdout
-        
+
     if(argc < 2){
         print_usage( "hidapitester" );
         exit(1);
     }
-    
+
     struct option longoptions[] =
         {
          {"help", no_argument, 0, 'h'},
@@ -215,11 +215,11 @@ int main(int argc, char* argv[])
         if (opt==-1) done = true; // parsed all the args
         switch(opt) {
         case 0:                   // long opts with no short opts
-            
+
             if( cmd == CMD_VIDPID ) {
-                
+
                 if( sscanf(optarg, "%4hx/%4hx", &vid,&pid) !=2 ) {  // match "23FE/AB12"
-                    if( !sscanf(optarg, "%4hx:%4hx", &vid,&pid) ) { // match "23FE:AB12" 
+                    if( !sscanf(optarg, "%4hx:%4hx", &vid,&pid) ) { // match "23FE:AB12"
                         // else try parsing standard dec/hex values
                         int wordbuf[4]; // a little extra space
                         int parsedlen = str2buf(wordbuf, ":/, ", optarg, sizeof(wordbuf), 2);
@@ -316,7 +316,7 @@ int main(int argc, char* argv[])
                 }
             }
             else if( cmd == CMD_CLOSE ) {
-                
+
                 msg("Closing device\n");
                 if(dev) {
                     hid_close(dev);
@@ -325,18 +325,18 @@ int main(int argc, char* argv[])
             }
             else if( cmd == CMD_SEND_OUTPUT  ||
                      cmd == CMD_SEND_FEATURE ) {
-                
+
                 int parsedlen = str2buf(buf, ", ", optarg, sizeof(buf), 1);
                 if( parsedlen<1 ) { // no bytes or error
                     msg("Error: no bytes read as arg to --send...");
                     break;
                 }
                 buflen = (!buflen) ? parsedlen : buflen;
-                
-                if( !dev ) { 
+
+                if( !dev ) {
                     msg("Error on send: no device opened.\n"); break;
                 }
-                if( cmd == CMD_SEND_OUTPUT ) { 
+                if( cmd == CMD_SEND_OUTPUT ) {
                     msg("Writing output report of %d-bytes...",buflen);
                     res = hid_write(dev, buf, buflen);
                 }
@@ -350,23 +350,30 @@ int main(int argc, char* argv[])
             else if( cmd == CMD_READ_INPUT ||
                      cmd == CMD_READ_INPUT_FOREVER ) {
 
-                if( !dev ) { 
+                if( !dev ) {
                     msg("Error on read: no device opened.\n"); break;
                 }
                 if( !buflen) {
                     msg("Error on read: buffer length is 0. Use --len to specify.\n"); break;
                 }
                 uint8_t report_id = (optarg) ? strtol(optarg,NULL,10) : 0;
-                do { 
+                do {
                     msg("Reading %d-byte input report, %d msec timeout...", buflen,timeout_millis);
                     res = hid_read_timeout(dev, buf, buflen, timeout_millis);
                     msg("read %d bytes:\n", res);
-                    printbuf(buf,buflen, print_base);
+                    if( res > 0 ) {
+                        printbuf(buf,buflen, print_base);
+                        memset(buf,0,buflen);  // clear it out
+                    }
+                    else if( res == -1 )  { // removed device
+                        cmd = CMD_CLOSE;
+                        break;
+                    }
                 } while( cmd == CMD_READ_INPUT_FOREVER );
             }
             else if( cmd == CMD_READ_FEATURE ) {
-                
-                if( !dev ) { 
+
+                if( !dev ) {
                     msg("Error on read: no device opened.\n"); break;
                 }
                 if( !buflen) {
@@ -380,7 +387,7 @@ int main(int argc, char* argv[])
                 msg("read %d bytes:\n",res);
                 printbuf(buf, buflen, print_base);
             }
-            
+
             break; // case 0 (longopts without shortops)
         case 'h':
             print_usage("hidapitester");
@@ -404,10 +411,10 @@ int main(int argc, char* argv[])
             msg_verbose = true;
             break;
         } // switch(opt)
-        
-        
+
+
     } // while(!done)
-    
+
     if(dev) {
         msg("Closing device\n");
         hid_close(dev);
@@ -415,4 +422,3 @@ int main(int argc, char* argv[])
     res = hid_exit();
 
 } // main
-
