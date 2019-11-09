@@ -87,8 +87,8 @@ enum {
 bool msg_quiet = false;
 bool msg_verbose = false;
 
-int print_base = 16;
-
+int print_base = 16; // 16 or 10, hex or decimal
+int print_width = 32; // how many characters per line
 /**
  * printf that can be shut up
  */
@@ -113,7 +113,7 @@ void msginfo(char* fmt, ...)
 /**
  * print out a buffer of len bufsize in decimal or hex form
  */
-void printbuf(uint8_t* buf, int bufsize, int base)
+void printbuf(uint8_t* buf, int bufsize, int base, int width)
 {
     for( int i=0 ; i<bufsize; i++) {
         if( base==10 ) {
@@ -121,7 +121,8 @@ void printbuf(uint8_t* buf, int bufsize, int base)
         } else if( base==16 ) {
             printf(" %02X", buf[i] );
         }
-       if (i % 16 == 15 && i < bufsize-1) printf("\n");
+       // if (i % 16 == 15 && i < bufsize-1) printf("\n");
+       if (i % width == width-1 && i < bufsize-1) printf("\n");
     }
     printf("\n");
 }
@@ -345,7 +346,7 @@ int main(int argc, char* argv[])
                     res = hid_send_feature_report(dev, buf, buflen);
                 }
                 msg("wrote %d bytes:\n", res);
-                if(!msg_quiet) { printbuf(buf,buflen, print_base); }
+                if(!msg_quiet) { printbuf(buf,buflen, print_base, print_width); }
             }
             else if( cmd == CMD_READ_INPUT ||
                      cmd == CMD_READ_INPUT_FOREVER ) {
@@ -358,11 +359,12 @@ int main(int argc, char* argv[])
                 }
                 uint8_t report_id = (optarg) ? strtol(optarg,NULL,10) : 0;
                 do {
-                    msg("Reading %d-byte input report, %d msec timeout...", buflen,timeout_millis);
+                    msg("Reading %d-byte input report %d, %d msec timeout...",
+                      buflen, report_id, timeout_millis);
                     res = hid_read_timeout(dev, buf, buflen, timeout_millis);
                     msg("read %d bytes:\n", res);
                     if( res > 0 ) {
-                        printbuf(buf,buflen, print_base);
+                        printbuf(buf,buflen, print_base, print_width);
                         memset(buf,0,buflen);  // clear it out
                     }
                     else if( res == -1 )  { // removed device
@@ -385,7 +387,7 @@ int main(int argc, char* argv[])
                 msg("Reading %d-byte feature report, report_id %d...",buflen, report_id);
                 res = hid_get_feature_report(dev, buf, buflen);
                 msg("read %d bytes:\n",res);
-                printbuf(buf, buflen, print_base);
+                printbuf(buf, buflen, print_base, print_width);
             }
 
             break; // case 0 (longopts without shortops)
