@@ -52,4 +52,5 @@ Mkfile.old
 dkms.conf
 
 # build products
-blink1-tool
+*.cast
+hidapitester
