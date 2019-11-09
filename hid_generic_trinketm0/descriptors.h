@@ -95,17 +95,17 @@
     0x15, 0x00,                     /* logical minimum = 0 */ \
     0x26, 0xFF, 0x00,               /* logical maximum = 255  */ \
     0x85, 1,                        /*   REPORT_ID (1) */ \
-    0x95, 8,                        /* report count */ \
+    0x95, 64,                        /* report count */ \
     0x09, 0x01,                     /* usage */ \
     0x81, 0x02,                     /* Input (array) */ \
-    0x95, 8,                        /* report count */ \
+    0x95, 64,                        /* report count */ \
     0x09, 0x02,                     /* usage */ \
     0x91, 0x02,                     /* Output (array) */ \
-    0x85, 2,                        /*   REPORT_ID (2) */ \
-    0x95, 64,                       /* report count */ \
+    0x85, 1,                        /*   REPORT_ID (2) */ \
+    0x95, 8,                       /* report count */ \
     0x09, 0x01,                     /* usage */ \
     0x81, 0x02,                     /* Input (array) */ \
-    0x95, 64,                       /* report count */ \
+    0x95, 8,                       /* report count */ \
     0x09, 0x02,                     /* usage */ \
     0x91, 0x02,                     /* Output (array) */ \
     0xC0                            /* end collection */ \

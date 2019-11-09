@@ -4,7 +4,7 @@
  *     with or without Report IDs
  * 
  * To use:
- * - Use Trinket M0 or other device supported by Adafruit_TinyUSB
+ * - Use Trinket M0 or other device supported by the "Adafruit_TinyUSB" library
  * - Install "Adafruit SAMD Board" board package with Boards Manager
  * - Install "Adafruit_TinyUSB" library with Library Manager
  * - In Arduino IDE, select Adafruit SAMD-based board (e.g. "Trinket M0")
@@ -41,7 +41,9 @@
  *      $ python3 hid_test.py
  */
 
-#include "Adafruit_TinyUSB.h"
+#include <Adafruit_TinyUSB.h>
+#include <Adafruit_NeoPixel.h>
+#include <Adafruit_DotStar.h>
 
 // pick one
 //#define MODE  MODE_INOUT_NO_REPORTID
@@ -58,13 +60,18 @@ uint8_t const desc_hid_report[] = { HID_DESC };
 
 Adafruit_USBD_HID usb_hid;
 
-int size0 = 0;
-int size1 = 0;
+uint32_t statusMillisNext;
+
+const int DOTSTAR_DAT = 7; 
+const int DOTSTAR_CLK = 8; 
+
+Adafruit_DotStar dotstrip = Adafruit_DotStar( 1, DOTSTAR_DAT, DOTSTAR_CLK, DOTSTAR_BGR);
+
 
 // the setup function runs once when you press reset or power the board
 void setup()
 {
-    USBDevice.setID( VID, PID );
+    USBDevice.setID( VID, PID ); // VID,PID set in 'descriptors.h'
 
     usb_hid.enableOutEndpoint(true);
     usb_hid.setPollInterval(2);
@@ -73,8 +80,13 @@ void setup()
 
     usb_hid.begin();
 
-    Serial.begin(115200);
+    dotstrip.begin(); // Initialize pins for output
+    dotstrip.setPixelColor(0,0x330033);
+    dotstrip.show();
 
+    Serial.begin(115200);
+    Serial.setTimeout(500);  // for serial.readString()
+    
     // wait until device mounted
     while( !USBDevice.mounted() ) delay(1);
 
@@ -82,14 +94,33 @@ void setup()
 //    Serial.println("hid_generic_trinketm0 hidapitester");
 }
 
+uint8_t buf[64];
+char tmpstr[100];
+
 void loop()
 {
-    Serial.printf("MODE:%s... \n",MODE_STR); 
-    if( Serial.available() ) { 
-        int c = Serial.read();
-        Serial.printf("read:%c\n",(char)c);
+    if( statusMillisNext - millis() > 3000 ) { 
+        Serial.printf("MODE:%s... \n",MODE_STR); 
+        statusMillisNext = millis() + 3000;
+        dotstrip.setPixelColor(0,0x330033);
+        dotstrip.show();
     }
-    delay(3000);
+    
+    if( Serial.available() ) { 
+        String str = Serial.readString();
+        str.getBytes( (unsigned char*)tmpstr, 100);
+        Serial.printf("serial read str:%s\n",tmpstr);
+        int c = hexread(buf, tmpstr, 64 );
+        if( c > 0 ) {
+            Serial.printf("serial read buf: len=%d\n",c);
+            for( int i=0; i<c; i++ ) { 
+                Serial.printf("%02.2x,",buf[i]);
+            }
+            Serial.println();
+        }
+       usb_hid.sendReport(1, buf, sizeof(buf));
+       memset(buf,0,sizeof(buf));
+    }
 }
 
 // Invoked when received GET_REPORT control request
@@ -97,6 +128,9 @@ void loop()
 // Return zero will cause the stack to STALL request
 uint16_t get_report_callback (uint8_t report_id, hid_report_type_t report_type, uint8_t* buffer, uint16_t reqlen)
 {
+    dotstrip.setPixelColor(0,0x000033);
+    dotstrip.show();
+    
     Serial.print("Got GET_REPORT request:");
     Serial.print(" report_id:"); Serial.print(report_id);
     Serial.print(" report_type:"); Serial.print(report_type);
@@ -119,6 +153,9 @@ uint16_t get_report_callback (uint8_t report_id, hid_report_type_t report_type, 
 // received data on OUT endpoint ( Report ID = 0, Type = 0 )
 void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8_t const* buffer, uint16_t bufsize)
 {
+    dotstrip.setPixelColor(0,0x000033);
+    dotstrip.show();
+    
     Serial.print("Got SET_REPORT request:");
     Serial.print(" report_id:"); Serial.print(report_id);
     Serial.print(" report_type:"); Serial.print(report_type);
@@ -130,5 +167,21 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type, uint8
     Serial.println();
 
     // echo back anything we received from host
-    //usb_hid.sendReport(0, buffer, bufsize);
+//    usb_hid.sendReport(0, buffer, bufsize);
+//    usb_hid.sendReport(report_id, buffer, bufsize);
+}
+
+// parse a comma-delimited string containing numbers (dec,hex) into a byte arr buffer
+int hexread(uint8_t *buffer, char *string, int buflen)
+{
+    char* s;
+    int pos = 0;
+    if( string==NULL ) return -1;
+    memset(buffer,0,buflen); 
+    while((s = strtok(string, ", ")) != NULL && pos < buflen){
+        string = NULL;
+        buffer[pos] = (char)strtol(s, NULL, 0);
+        pos++;
+    }
+    return pos;
 }
