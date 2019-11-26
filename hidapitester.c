@@ -60,6 +60,8 @@ static void print_usage(char *myname)
 "  hidapitester --vidpid xxxx:yyyy -l 64 --open --send-output 1,2,3 --read-input \n"
 ". Read Input report continuously with 1500 msec timeout \n"
 "  hidapitester --vidpid xxxx:yyyy -l 64 -t 1500 --open --read-input-forever\n"
+". Send FadeToRGB #FF00FF command to blink(1)\n"
+"  hidapitester --vidpid 27b8:01ed -l 9 --open --send-feature 1,99,255,0,255\n"
 
 ""
 
