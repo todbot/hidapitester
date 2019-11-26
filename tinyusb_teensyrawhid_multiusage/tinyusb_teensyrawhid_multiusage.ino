@@ -113,7 +113,7 @@ void loop()
         Serial.printf("serial read str:%s\n",tmpstr);
         int c = hexread(buf, tmpstr, sizeof(buf) );
         if( c > 0 ) {
-            Serial.printf("serial read buf: len=%d\n",c);
+            Serial.printf("Sending serial read buf: len=%d\n",c);
             printbuf(buf, sizeof(buf));
             Serial.println();
         }
