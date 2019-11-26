@@ -1,5 +1,5 @@
 /**
- * tinyusb_teensyrawhid- TinyUSB clone of Teensy RawHID example
+ * tinyusb_teensyrawhid_multiusage- TinyUSB clone of Teensy RawHID example, with two usages
  * 
  *   When programmed on a TinyUSB-compatible device (Trinket M0, etc),
  *   this sketch provides a HID device that attempts to be a work-alike clone
