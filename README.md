@@ -163,6 +163,16 @@ make
 ```
 
 `hidapitester` will use a copy of `hidapi` located next to it in the directory hierarchy.
+If you install `hidapi` in a different directory, you can set the Makefile
+variable `HIDAPI_DIR` before invoking `make`:
+
+```
+# hidapi is in dir 'hidapi-libusb-test'
+cd hidapitester
+HIDAPI_DIR=../hidapi-libusb-test make clean
+HIDAPI_DIR=../hidapi-libusb-test make
+./hidapitester --list
+```
 
 
 ### Platform-specific requirements
@@ -179,4 +189,3 @@ On Linux
 ```
 sudo apt install libudev1 libudev-dev pkg-config python
 ```
-
