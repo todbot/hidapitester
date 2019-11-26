@@ -3,7 +3,7 @@
 # 2019 Tod E. Kurt, todbot.com
 #
 
-# overide this with `HIDAPI_DIR make`
+# overide this with something like `HIDAPI_DIR=../hidapi-libusb make`
 HIDAPI_DIR ?= ../hidapi
 
 # try to do some autodetecting
@@ -29,7 +29,7 @@ endif
 ifeq "$(OS)" "macosx"
 
 LIBS=-framework IOKit -framework CoreFoundation
-OBJS=$(HIDAPI_DIR)/mac/hid.o 
+OBJS=$(HIDAPI_DIR)/mac/hid.o
 EXE=
 
 endif
@@ -64,7 +64,7 @@ $(OBJS): %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@
 
 
-hidapitester: $(OBJS) 
+hidapitester: $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o hidapitester$(EXE) $(LIBS)
 
 clean:
