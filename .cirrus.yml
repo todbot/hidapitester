@@ -1,0 +1,56 @@
+#
+# Build hidapitester for linux, macosx, windows
+#
+
+task:
+  name: linux
+  container:
+    image: ubuntu:latest
+  setup_os_script:
+    - apt-get update && apt-get install -y build-essential zip git make gcc pkg-config libudev-dev
+  setup_script:
+    - git fetch --tags origin
+    - git clone https://github.com/libusb/hidapi
+  build_script:
+    - export HIDAPI_DIR=hidapi
+    - make
+  test_script:
+    - ./hidapitester 
+  artifacts:
+    path: ./hidapitester
+
+task:
+  name: macosx
+  osx_instance:
+    image: mojave-xcode
+  setup_script:
+    - git fetch --tags origin
+    - git clone https://github.com/libusb/hidapi
+  build_script:
+    - export HIDAPI_DIR=hidapi
+    - make
+  test_script:
+    - ./hidapitester 
+  artifacts:
+    path: ./hidapitester
+
+task:
+  name: windows
+  windows_container:
+    image: cirrusci/windowsservercore:cmake
+    os_version: 2019
+  setup_script:
+    - set PATH=C:\tools\msys64\usr\bin;c:\tools\msys64\mingw64\bin;%PATH%
+    - pacman -S --noconfirm zip unzip
+    - git fetch --tags origin
+    - git clone https://github.com/libusb/hidapi
+  build_script:
+    - set PATH=C:\tools\msys64\usr\bin;c:\tools\msys64\mingw64\bin;%PATH%
+    - call "C:\Program Files (x86)\Microsoft Visual Studio\2017\BuildTools\VC\Auxiliary\Build\vcvars64.bat"
+    - set MAKE=mingw32-make
+    - set HIDAPI_DIR=hidapi
+    - mingw32-make
+  test_script:
+    - hidapitester.exe
+  artifacts:
+    path: hidapitester.exe
