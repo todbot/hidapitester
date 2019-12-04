@@ -15,7 +15,7 @@ task:
     - export HIDAPI_DIR=hidapi
     - make
   test_script:
-    - ./hidapitester 
+    - ./hidapitester --list
   artifacts:
     path: ./hidapitester
 
@@ -30,7 +30,7 @@ task:
     - export HIDAPI_DIR=hidapi
     - make
   test_script:
-    - ./hidapitester 
+    - ./hidapitester --list
   artifacts:
     path: ./hidapitester
 
@@ -51,6 +51,6 @@ task:
     - set HIDAPI_DIR=hidapi
     - mingw32-make
   test_script:
-    - hidapitester.exe
+    - hidapitester.exe --list
   artifacts:
     path: hidapitester.exe
