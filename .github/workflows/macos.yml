@@ -1,0 +1,35 @@
+# This is a basic workflow to help you get started with Actions
+
+name: macos
+
+# Controls when the action will run. Triggers the workflow on push or pull request
+# events but only for the master branch
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+jobs:
+  # This workflow contains a single job called "build"
+  build:
+    runs-on: macos-latest
+
+    # Steps represent a sequence of tasks that will be executed as part of the job
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - uses: actions/checkout@v2
+          
+      - name: fetch hidapi
+        shell: bash
+        run: git clone https://github.com/libusb/hidapi hidapi-libusb
+        run: cd hidapi-libusb && git checkout hidapi-0.10.1 
+
+      - name: compile hidapitester
+        shell: bash
+        run: HIDAPI_DIR=./hidapi-libusb make
+        
+
+        
+        
