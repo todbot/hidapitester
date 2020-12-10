@@ -29,9 +29,12 @@ jobs:
         shell: bash
         run: |
           git clone https://github.com/libusb/hidapi hidapi-libusb
-          cd hidapi-libusb && git checkout hidapi-0.10.1 
+          cd hidapi-libusb && git checkout hidapi-0.10.1
 
       - name: compile hidapitester
         shell: bash
         run: HIDAPI_DIR=./hidapi-libusb make
 
+      - name: run hidapitester
+        shell: bash
+        run: ./hidapitester --help && ./hidapitester --list
