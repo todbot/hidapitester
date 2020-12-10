@@ -72,6 +72,7 @@ Adafruit_DotStar dotstrip = Adafruit_DotStar( 1, DOTSTAR_DAT, DOTSTAR_CLK, DOTST
 void setup()
 {
     USBDevice.setID( VID, PID ); // VID,PID set in 'descriptors.h'
+//    USBDevice.setSerialNumberDescriptor("1234");
 
     usb_hid.enableOutEndpoint(true);
     usb_hid.setPollInterval(2);

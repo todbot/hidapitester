@@ -2,6 +2,11 @@
 
 Simple command-line program to exercise HIDAPI
 
+[![Build Status linux](https://api.cirrus-ci.com/github/todbot/hidapitester.svg?task=linux)](https://cirrus-ci.com/github/todbot/hidapitester)
+[![Build Status macosx](https://api.cirrus-ci.com/github/todbot/hidapitester.svg?task=macosx)](https://cirrus-ci.com/github/todbot/hidapitester)
+[![Build Status windows](https://api.cirrus-ci.com/github/todbot/hidapitester.svg?task=windows)](https://cirrus-ci.com/github/todbot/hidapitester)
+
+
 The point of `hidapitester` is to provide a simple low-dependency
 command-line tool to test out every API call in
 [hidapi](https://github.com/libusb/hidapi).

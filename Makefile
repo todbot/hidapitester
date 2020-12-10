@@ -28,7 +28,7 @@ endif
 #############  Mac
 ifeq "$(OS)" "macosx"
 
-LIBS=-framework IOKit -framework CoreFoundation
+LIBS=-framework IOKit -framework CoreFoundation -framework AppKit
 OBJS=$(HIDAPI_DIR)/mac/hid.o
 EXE=
 

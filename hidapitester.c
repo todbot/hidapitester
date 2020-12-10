@@ -30,6 +30,7 @@ static void print_usage(char *myname)
 "  --usagePage <number>        Filter by usagePage \n"
 "  --usage <number>            Filter by usage \n"
 "  --list                      List HID devices (by filters)\n"
+"  --list-usages               List HID devices w/ usages (by filters)\n"
 "  --list-detail               List HID devices w/ details (by filters)\n"
 "  --open                      Open device with previously selected filters\n"
 "  --open-path <pathstr>       Open device by path (as in --list-detail) \n"
@@ -75,6 +76,7 @@ enum {
     CMD_USAGE,
     CMD_USAGEPAGE,
     CMD_LIST,
+    CMD_LIST_USAGES,
     CMD_LIST_DETAIL,
     CMD_OPEN,
     CMD_OPEN_PATH,
@@ -193,6 +195,7 @@ int main(int argc, char* argv[])
          {"usage",        required_argument, &cmd,   CMD_USAGE},
          {"usagePage",    required_argument, &cmd,   CMD_USAGEPAGE},
          {"list",         no_argument,       &cmd,   CMD_LIST},
+         {"list-usages",  no_argument,       &cmd,   CMD_LIST_USAGES},
          {"list-detail",  no_argument,       &cmd,   CMD_LIST_DETAIL},
          {"open",         no_argument,       &cmd,   CMD_OPEN},
          {"open-path",    required_argument, &cmd,   CMD_OPEN_PATH},
@@ -247,6 +250,7 @@ int main(int argc, char* argv[])
                 msginfo("Set usage to 0x%04hX (%d)\n", usage,usage);
             }
             else if( cmd == CMD_LIST ||
+                     cmd == CMD_LIST_USAGES ||
                      cmd == CMD_LIST_DETAIL ) {
 
                 struct hid_device_info *devs, *cur_dev;
@@ -255,9 +259,18 @@ int main(int argc, char* argv[])
                 while (cur_dev) {
                     if( (!usage_page || cur_dev->usage_page == usage_page) &&
                         (!usage || cur_dev->usage == usage) ) {
-                        printf("%04X/%04X: %ls - %ls\n",
-                               cur_dev->vendor_id, cur_dev->product_id,
-                               cur_dev->manufacturer_string, cur_dev->product_string );
+                        if( cmd == CMD_LIST_USAGES ) {
+                            printf("%04X/%04X / %04hX/%04hX  %ls - %ls\n",
+                                   cur_dev->vendor_id, cur_dev->product_id,
+                                   cur_dev->usage_page, cur_dev->usage ,
+                                   cur_dev->manufacturer_string, cur_dev->product_string );
+                        }
+                        else {
+                            printf("%04X/%04X: %ls - %ls\n",
+                                   cur_dev->vendor_id, cur_dev->product_id,
+                                   cur_dev->manufacturer_string, cur_dev->product_string );
+                        }
+                        
                         if( cmd == CMD_LIST_DETAIL ) {
                             printf("  vendorId:      0x%04hX\n", cur_dev->vendor_id);
                             printf("  productId:     0x%04hX\n", cur_dev->product_id);
