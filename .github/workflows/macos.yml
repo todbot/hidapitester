@@ -23,8 +23,9 @@ jobs:
           
       - name: fetch hidapi
         shell: bash
-        run: git clone https://github.com/libusb/hidapi hidapi-libusb
-        run: cd hidapi-libusb && git checkout hidapi-0.10.1 
+        run: |
+          git clone https://github.com/libusb/hidapi hidapi-libusb
+          cd hidapi-libusb && git checkout hidapi-0.10.1 
 
       - name: compile hidapitester
         shell: bash
