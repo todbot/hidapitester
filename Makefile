@@ -8,9 +8,10 @@ HIDAPI_DIR ?= ../hidapi
 
 # try to do some autodetecting
 UNAME := $(shell uname -s)
+ARCH := $(shell uname -m)
 
 ifeq "$(UNAME)" "Darwin"
-	OS=macosx
+	OS=macos
 endif
 ifeq "$(OS)" "Windows_NT"
 	OS=windows
@@ -26,7 +27,7 @@ endif
 
 
 #############  Mac
-ifeq "$(OS)" "macosx"
+ifeq "$(OS)" "macos"
 
 LIBS=-framework IOKit -framework CoreFoundation -framework AppKit
 OBJS=$(HIDAPI_DIR)/mac/hid.o
@@ -70,3 +71,7 @@ hidapitester: $(OBJS)
 clean:
 	rm -f $(OBJS)
 	rm -f hidapitester$(EXE)
+
+package: hidapitester$(EXE)
+	@echo "Packaging up hidapitester for '$(OS)-$(ARCH)'"
+	zip hidapitester-$(OS)-$(ARCH).zip hidapitester$(EXE)
