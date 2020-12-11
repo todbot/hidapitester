@@ -20,9 +20,9 @@ command-line tool to test out every API call in
 See the [hidapitester releases page](https://github.com/todbot/hidapitester/releases)
 for builds for:
 
-- Mac OS X
-- Linux (Ubuntu x64)
-- Windows
+- Mac OS X (Intel and M1)
+- Linux (Ubuntu x64 and Raspberry Pi)
+- Windows 64-bit
 
 ## Usage
 
