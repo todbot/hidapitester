@@ -30,6 +30,14 @@ jobs:
       - name: compile hidapitester
         shell: bash
         run: HIDAPI_DIR=./hidapi-libusb make
+      
+      - name: package hidapitester
+        shell: bash
+        run: make package
+      
+      - with: 
+          name: hidapitester-package
+          path: hidapitester*.zip
         
 
         
