@@ -33,7 +33,7 @@ jobs:
       
       - name: package hidapitester
         shell: bash
-        run: make package
+        run: ls -al && make package
       
       - name: Archive hidapitester
         uses: actions/upload-artifact@v2
