@@ -33,7 +33,9 @@ jobs:
       
       - name: package hidapitester
         shell: bash
-        run: ls -al && make package
+        run: |
+          ls -al 
+          HIDAPI_DIR=./hidapi-libusb make package
       
       - name: Archive hidapitester
         uses: actions/upload-artifact@v2
