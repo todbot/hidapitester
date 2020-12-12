@@ -35,8 +35,10 @@ jobs:
         shell: bash
         run: make package
       
-      - with: 
-          name: hidapitester-package
+      - name: Archive hidapitester
+        uses: actions/upload-artifact@v2
+        with: 
+          name: hidapitester-macos-package
           path: hidapitester*.zip
         
 
