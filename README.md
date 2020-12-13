@@ -13,7 +13,20 @@ command-line tool to test out every API call in
 
 <img src="./docs/screencast1a.gif" width="500">
 
+## Table of Contents
 
+  * [Prebuilt binaries](#prebuilt-binaries)
+  * [Usage](#usage)
+     * [Listing Devices](#listing-devices)
+     * [Opening Devices](#opening-devices)
+     * [Reading and Writing Reports](#reading-and-writing-reports)
+  * [Examples](#examples)
+     * [Test Hardware](#test-hardware)
+  * [Compiling](#compiling)
+     * [Platform-specific requirements](#platform-specific-requirements)
+        * [Mac:](#mac)
+        * [Windows](#windows)
+        * [Linux](#linux)
 
 ## Prebuilt binaries
 
@@ -50,24 +63,29 @@ Those commands are:
   --verbose, -v               Print out extra information
 ```
 
-### Listing and Opening Devices
-The `--list-detail` shows all available information,
-including usagePage, usage, and path.
-Specifying `--vidpid`, `--usagePage`, or `--usage` will filter the output
-of `--list` and `--list-detail`.
+### Listing Devices
+
+* `--list` shows devices similar to `lsusb`
+* `--list-usages` includes usagePage and usage atributes
+* `--list-detail` shows all available information,
+including usagePage, usage, path, and more
+* Use `--vidpid`, `--usagePage`, or `--usage` to filter the output
+
+* The `--vidpid` commmands allows full or partial specification of the
+Vendor Id and Product Id.  These are all valid:
+
+  ```
+  --vidpid 16C0:FFAB  # specify both vid 0x16C0 and pid 0xFFAB
+  --vidpid 16C0       # just specify the vid
+  --vidpid 0:FFAB     # just specify the pid
+  --vidpid 16C0:FFAB  # use colon instead of slash
+  ```
+
+
+### Opening Devices
 
 You must `--open` before you can `--read-input`. You can also `--read-input`
 multiple times, or `--open` one device, `--close` it, and `--open` another.
-
-The `--vidpid` commmands allows full or partial specification of the
-Vendor Id and Product Id.  These are all valid:
-
-```
---vidpid 16C0:FFAB  # specify both vid 0x16C0 and pid 0xFFAB
---vidpid 16C0       # just specify the vid
---vidpid 0:FFAB     # just specify the pid
---vidpid 16C0:FFAB  # use colon instead of slash
-```
 
 The `--open` command will take whichever of VID, PID, usagePage, and usage are
 specified.  So these are valid:
@@ -105,7 +123,6 @@ hidapitester [...] --length 17 --read-input 3
 ```
 
 
-
 ## Examples
 
 Get version info from a blink(1):
@@ -140,24 +157,22 @@ Closing device
 ```
 
 
+### Test Hardware
 
-
-### Testing
-
-- The "TeensyRawHid" directory contains an Arduino sketch for Teensy.
+- The "TeensyRawHid" directory contains an Arduino sketch for
+[Teensy microcontrollers](https://www.pjrc.com/teensy/).
 The sketch sends 64-byte Input reports every second, with no reportId.
-The sketch receives 64-byte Output reports, and prints them
-to Serial Monitor.
+The sketch receives 64-byte Output reports, and prints them to Serial Monitor.
 
-- The "ProMicroRawHID" directory contains an Arduino sketch for any board
-supported by NicoHood's [HID Project](https://github.com/NicoHood/HID)
+- The "ProMicroRawHID" directory contains an Arduino sketch for any microcontroller
+board supported by NicoHood's [HID Project](https://github.com/NicoHood/HID)
 This sketch sends a 64-byte Input report every 2 seconds, with no reportId.
 The sketch recives 64-byte Output or Feature reports, and prints them
 to Serial Monitor
 
 
+## Compiling
 
-## To build
 Building `hidapitester` is done via a very simple Makefile.
 
 ```
@@ -182,15 +197,19 @@ HIDAPI_DIR=../hidapi-libusb-test make
 
 ### Platform-specific requirements
 
-On Mac:
+#### Mac:
 - Install XCode
+- Specifically, Command-line Tools
+  ```
+  sudo xcode-select --install
+  ```
 
-On Windows
-- Install MSYS
-- Build in a MinGW window
+#### Windows
+- Install MSYS2
+- Build in a MinGW / MSYS2 window
 
-On Linux
-- Install udev, pkg-config, and python
-```
-sudo apt install libudev1 libudev-dev pkg-config python
-```
+#### Linux
+- Install udev, pkg-config
+  ```
+  sudo apt install libudev1 libudev-dev pkg-config
+  ```
