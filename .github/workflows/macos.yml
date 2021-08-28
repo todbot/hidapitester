@@ -21,6 +21,13 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v2
           
+      # xcode 12.5 does not have Arm support?
+      - name: update to xcode w/ arm
+        shell: bash
+        run: |
+          sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*
+          sudo xcode-select -s "/Applications/Xcode_12.3.app"
+
       - name: fetch hidapi
         shell: bash
         run: |
@@ -40,7 +47,7 @@ jobs:
       - name: Archive hidapitester
         uses: actions/upload-artifact@v2
         with: 
-          name: hidapitester-macos-package
+          name: hidapitester-macos
           path: hidapitester*.zip
         
 
