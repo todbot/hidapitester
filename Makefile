@@ -29,6 +29,7 @@ endif
 #############  Mac
 ifeq "$(OS)" "macos"
 
+CFLAGS+=-arch x86_64 -arch arm64
 LIBS=-framework IOKit -framework CoreFoundation -framework AppKit
 OBJS=$(HIDAPI_DIR)/mac/hid.o
 EXE=
@@ -56,7 +57,7 @@ endif
 
 ############# common
 
-CFLAGS=-I $(HIDAPI_DIR)/hidapi
+CFLAGS+=-I $(HIDAPI_DIR)/hidapi
 OBJS += hidapitester.o
 
 all: hidapitester
