@@ -117,12 +117,12 @@
     0x15, 0x00,                    /*   LOGICAL_MINIMUM (0) */ \
     0x26, 0xff, 0x00,              /*   LOGICAL_MAXIMUM (255)*/ \
     0x75, 0x08,                    /*   REPORT_SIZE (8) */ \
-    0x95, 64,                      /*   REPORT_COUNT (64) */ \
+    0x95, report_size,             /*   REPORT_COUNT (64) */ \
     0x09, 0x00,                    /*   USAGE (Undefined) */ \
     0xb2, 0x02, 0x01,              /*   FEATURE (Data,Var,Abs,Buf) */ \
     0xc0,                          /* END_COLLECTION */ \
 
-#define HID_DESC_FEATURE_WITH_REPORTIDS(report_size, ...) \
+#define HID_DESC_FEATURE_WITH_REPORTID(report_size, ...) \
     0x06, 0xAB, 0xFF, \
     0x0A, 0x00, 0x20, \
     0xA1, 0x01,                    /* COLLECTION (Application) */ \
@@ -130,12 +130,12 @@
     0x26, 0xff, 0x00,              /*   LOGICAL_MAXIMUM (255)*/ \
     0x75, 0x08,                    /*   REPORT_SIZE (8) */ \
     0x85, 1,                       /*   REPORT_ID (1) */ \
-    0x95, 8,                       /*   REPORT_COUNT (8) */ \
+    0x95, report_sie,              /*   REPORT_COUNT (xx) */ \
     0x09, 0x00,                    /*   USAGE (Undefined) */ \
     0xb2, 0x02, 0x01,              /*   FEATURE (Data,Var,Abs,Buf) */ \
     0x75, 0x08,                    /*   REPORT_SIZE (8) */ \
     0x85, 2,                       /*   REPORT_ID (1) */ \
-    0x95, 64,                      /*   REPORT_COUNT (64) */ \
+    0x95, report_size,             /*   REPORT_COUNT (xx) */ \
     0x09, 0x00,                    /*   USAGE (Undefined) */ \
     0xb2, 0x02, 0x01,              /*   FEATURE (Data,Var,Abs,Buf) */ \
     0xc0,                          /* END_COLLECTION */ \
