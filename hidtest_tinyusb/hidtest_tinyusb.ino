@@ -6,7 +6,7 @@
  * To compile:
  * - Use QTPy M0, Trinket M0, or other device supported by "Adafruit_TinyUSB"
  * - Install "Adafruit SAMD Board" board package with Boards Manager
- * - Install "Adafruit_TinyUSB" library with Library Manager
+ * - Install "Adafruit_TinyUSB" library with Library Manager (version 1.6.0 or better)
  * - In Arduino IDE, select Adafruit SAMD-based board (e.g. "Trinket M0")
  * - In Arduino IDE, set Tools->USB Stack->TinyUSB
  *
@@ -30,7 +30,16 @@
  *    - F - send FEATURE report to host
  *    - E - Turn report echo on/off
  *    - H - print help
- *    
+ * 
+ * Examples:
+ * - Set MODE == MODE_INOUT_NO_REPORTID  (64-byte, no reportIds)
+ *    - hidapitester:
+ *     hidapitester --vidpid=239A:801E -l 65 -t 1500 --send-output 0,1,2,3,4,5,6
+ * 
+ * - Set MODE == MODE_FEATURE_WITH_REPORTID
+ *    - use "hidapitester" like:
+ *      - hidapitester --vidpid=239A:801E -l 33 -t 1500 \
+ *             --open --send-feature 1,1,2,3,4,5,6 --read-feature 1
  */
 
 // Config: Pick one of these
@@ -50,7 +59,9 @@
 uint8_t const desc_hid_report[] = { HID_DESC };
 
 Adafruit_USBD_HID usb_hid;
-
+//Adafruit_USBD_HID usb_hid(desc_hid_report, sizeof(desc_hid_report),
+//                          HID_ITF_PROTOCOL_NONE, 2, true);
+                          
 uint32_t statusMillisNext;
 bool echoReports = false;
 
@@ -67,27 +78,28 @@ Adafruit_NeoPixel leds(NUM_LEDS, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
 // the setup function runs once when you press reset or power the board
 void setup()
 {
-    USBDevice.setID( VID, PID ); // VID,PID set in 'descriptors.h'
-//    USBDevice.setSerialNumberDescriptor("1234");
-
+    TinyUSBDevice.setID( VID, PID ); // VID,PID set in 'descriptors.h'
+    TinyUSBDevice.setManufacturerDescriptor("hidapitester");
+    TinyUSBDevice.setProductDescriptor("hidtest_tinyusb");
+    //USBDevice.setSerialNumberDescriptor("1234");
     usb_hid.enableOutEndpoint(true);
     usb_hid.setPollInterval(2);
     usb_hid.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
     usb_hid.setReportCallback(get_report_callback, set_report_callback);
-
     usb_hid.begin();
-
-    leds.begin(); // Initialize pins for output
-    leds.setPixelColor(0,0x330033);
-    leds.show();
 
     Serial.begin(115200);
     Serial.setTimeout(500);  // for serial.readString()
     
     // wait until device mounted
-    while( !USBDevice.mounted() ) delay(1);
+    while( !TinyUSBDevice.mounted() ) delay(1);
 
-    delay(1000);
+    leds.begin(); // Initialize pins for output
+    leds.setBrightness(32);
+    leds.fill(0xff00ff);
+    leds.show();
+
+    //delay(1000);
     Serial.println("hidtest_tinyusb hidapitester");
     Serial.println("hid report descriptor:");
     printbuf(desc_hid_report, sizeof(desc_hid_report));
@@ -96,6 +108,8 @@ void setup()
 void help()
 {
     Serial.println("Here is where help would be\n");
+    Serial.println("hid report descriptor:");
+    printbuf(desc_hid_report, sizeof(desc_hid_report));
 }
 
 // clear output the input buffer
@@ -110,7 +124,7 @@ void loop()
         Serial.printf("hidtest_tinyusb vidpid=%4X:%4X mode=%s... ('?' for help)\n",
                       VID,PID, MODE_STR);
         statusMillisNext = millis() + 3000;
-        leds.setPixelColor(0,0x330033);
+        leds.fill(0xff00ff);
         leds.show();
     }
 
@@ -153,33 +167,39 @@ void loop()
     }
 }
 
+uint8_t send_buff[64];
+
 // Invoked when received GET_REPORT control request
 // Application must fill buffer report's content and return its length.
 // Return zero will cause the stack to STALL request
 // sent FEATURE report (report_type == 3)
 uint16_t get_report_callback (uint8_t report_id, hid_report_type_t report_type, 
                               uint8_t* buffer, uint16_t reqlen) {
-    leds.setPixelColor(0,0x000033);
+    leds.fill(0x0000FF);
     leds.show();
 
-    Serial.print("GET_REPORT request:");
+    Serial.print("GET_REPORT:");
     Serial.printf(" report_id: %d",report_id);
     Serial.printf(" report_type:%d (%s)",report_type,
                   (report_type==3) ? "FEATURE" : "OTHER");
     
     Serial.print(" reqlen:"); Serial.print(reqlen);
     Serial.println();
-    
-    //buffer[0] = report_id; //reportId no reportid implied in this
-    //case
-    buffer[0] = 'a';
-    buffer[1] = 'b';
-    buffer[2] = 'c';
-    buffer[3] = '1';
-    buffer[4] = '2';
-    buffer[5] = '3';
-    buffer[6] = '4';
-    
+
+    if( echoReports ) {
+        memcpy(buffer, send_buff, reqlen);
+    }
+    else {
+        //buffer[0] = report_id; //reportId no reportid implied in this case
+        buffer[0] = 'a';
+        buffer[1] = 'b';
+        buffer[2] = 'c';
+        buffer[3] = '1';
+        buffer[4] = '2';
+        buffer[5] = '3';
+        buffer[6] = '4';
+    }
+        
     Serial.printf("Sending buffer for reportId:%d:\n", report_id);
     printbuf(buffer, reqlen);
     
@@ -191,19 +211,20 @@ uint16_t get_report_callback (uint8_t report_id, hid_report_type_t report_type,
 // received FEATURE report (report_type == 3)
 void set_report_callback(uint8_t report_id, hid_report_type_t report_type, 
                           uint8_t const* buffer, uint16_t bufsize) {
-    leds.setPixelColor(0,0x000033);
+    leds.fill(0x00FF00);
     leds.show();
     
-    Serial.print("SET_REPORT :");
+    Serial.print("SET_REPORT:");
     Serial.print(" report_id:"); Serial.print(report_id);
     Serial.print(" report_type:"); Serial.print(report_type);
     Serial.print(" bufsize:"); Serial.print(bufsize);
     Serial.println();
     printbuf(buffer, bufsize);
-    Serial.println();
     
     // echo back anything we received from host
-    if( echoReports ) { 
+    if( echoReports ) {
+        Serial.println("Echoing back report");
+        memcpy( send_buff, buffer, bufsize); // save for GET_REPORT if feature report
         usb_hid.sendReport(0, buffer, bufsize);
     }
 }
