@@ -42,56 +42,49 @@
  *             --open --send-feature 1,1,2,3,4,5,6 --read-feature 1
  */
 
+// Config: Pick one of these
+//#define MODE  MODE_INOUT_NO_REPORTID
+//#define MODE  MODE_INOUT_WITH_REPORTIDS
+#define MODE  MODE_FEATURE_NO_REPORTID
+//#define MODE  MODE_FEATURE_WITH_REPORTID
+//#define MODE  MODE_BLINK1
+//#define MODE  MODE_TEENSY
+
 #include <Adafruit_TinyUSB.h>
-#include <Adafruit_SleepyDog.h>
-#include <FlashStorage.h>  // only samd21 & samd51 currently 
+#include <Adafruit_NeoPixel.h>
 
-#include "hid_settings.h"
+#include "descriptors.h"
 
-#include "board_config.h"
+// HID report descriptor using descriptors.h template
+uint8_t const desc_hid_report[] = { HID_DESC };
 
 Adafruit_USBD_HID usb_hid;
+//Adafruit_USBD_HID usb_hid(desc_hid_report, sizeof(desc_hid_report),
+//                          HID_ITF_PROTOCOL_NONE, 2, true);
                           
 uint32_t statusMillisNext;
 bool echoReports = false;
 
-int hid_mode = 0;
-
-typedef struct {
-  boolean valid;
-  int hid_mode;
-} StartupConfig;
-
-FlashStorage(config_flash_store, StartupConfig);
-StartupConfig config;
-
-// load the saved config from flash
-int loadConfig() {
-  config = config_flash_store.read();
-  // If this is the first run the "valid" value should be "false"...
-  if ( !config.valid ) {
-      config.hid_mode = 0;
-      config.valid = true;
-      return -1;  // had to fix the config
-  }
-  return 0; // laod was okay
-}
+const int NUM_LEDS = 1;
+#if ADAFRUIT_QTPY_M0
+const int NEOPIXEL_PIN = 11;
+Adafruit_NeoPixel leds(NUM_LEDS, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
+#else
+#warning "unknown board, setting NEOPIXEL_PIN to 0"
+const int NEOPIXEL_PIN = 0;
+Adafruit_NeoPixel leds(NUM_LEDS, NEOPIXEL_PIN, NEO_GRB + NEO_KHZ800);
+#endif
 
 // the setup function runs once when you press reset or power the board
 void setup()
 {
-    //config.hid_mode = 0; // FIXME: read from NVM
-    loadConfig();
-    
-    HIDSetting setting = settings[ config.hid_mode ];
-    
-    TinyUSBDevice.setID( setting.vid, setting.pid );
-    TinyUSBDevice.setManufacturerDescriptor( setting.manufacturer_str );
-    TinyUSBDevice.setProductDescriptor( setting.product_str );
-
+    TinyUSBDevice.setID( VID, PID ); // VID,PID set in 'descriptors.h'
+    TinyUSBDevice.setManufacturerDescriptor("hidapitester");
+    TinyUSBDevice.setProductDescriptor("hidtest_tinyusb");
+    //USBDevice.setSerialNumberDescriptor("1234");
     usb_hid.enableOutEndpoint(true);
     usb_hid.setPollInterval(2);
-    usb_hid.setReportDescriptor(setting.desc_hid_report, setting.desc_size);
+    usb_hid.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));
     usb_hid.setReportCallback(get_report_callback, set_report_callback);
     usb_hid.begin();
 
@@ -101,31 +94,22 @@ void setup()
     // wait until device mounted
     while( !TinyUSBDevice.mounted() ) delay(1);
 
-    board_leds_begin();
-    delay(1000);
-    
-    Serial.printf("hidtest_tinyusb_dynamic hidapitester: hid_mode:%d\n",config.hid_mode);
-    Serial.printf("hidtest_tinyusb vidpid=%04X:%04X mode=n/a... ('?' for help)\n",
-                  setting.vid, setting.pid);
-    print_help();    
+    leds.begin(); // Initialize pins for output
+    leds.setBrightness(32);
+    leds.fill(0xff00ff);
+    leds.show();
+
+    //delay(1000);
+    Serial.println("hidtest_tinyusb hidapitester");
+    Serial.println("hid report descriptor:");
+    printbuf(desc_hid_report, sizeof(desc_hid_report));
 }
 
-void print_help()
+void help()
 {
-    HIDSetting setting = settings[config.hid_mode];
     Serial.println("Here is where help would be\n");
-    Serial.printf("Current mode: %s\n", setting.info);
     Serial.println("hid report descriptor:");
-    printbuf(setting.desc_hid_report, sizeof(setting.desc_hid_report));
-
-    Serial.println("Available modes:");
-    for( uint8_t i=0; i < 4; i++ ) { // why can't I use sizeof(settings) here
-        HIDSetting s = settings[i];
-        Serial.printf("  Mode:%d\n", i);
-        Serial.printf("    description: %s\n", s.info);
-        Serial.printf("    vid:%d pid:%d\n", s.vid,s.pid);
-        Serial.printf("    mfg:'%s' product:'%s'\n", s.manufacturer_str, s.product_str);
-    }
+    printbuf(desc_hid_report, sizeof(desc_hid_report));
 }
 
 // clear output the input buffer
@@ -136,36 +120,20 @@ void drainSerial()
 
 void loop()
 {
-    HIDSetting setting = settings[config.hid_mode];
-    
     if( statusMillisNext - millis() > 3000 ) {
-        Serial.printf("hidtest_tinyusb: mode=%d",config.hid_mode );
-        Serial.printf("  device='%s'\n", setting.info);
-        Serial.printf("  vidpid=%04X:%04X",setting.vid, setting.pid);
-        Serial.printf("  mfg/prod='%s'/'%s'",setting.manufacturer_str, setting.product_str);
-        Serial.printf(" ('?' for help)\n");
-        // the above broken up into multiple lines because of printf() limitations
+        Serial.printf("hidtest_tinyusb vidpid=%04X:%04X mode=%s... ('?' for help)\n",
+                      VID,PID, MODE_STR);
         statusMillisNext = millis() + 3000;
-        board_leds_set(0xff00ff);
+        leds.fill(0xff00ff);
+        leds.show();
     }
 
     // Serial monitor commands
     if( Serial.available() ) {
         char cmd = tolower( Serial.read() );
         if( cmd == '?' || cmd == 'h') {   // help
-            print_help();
+            help();
             drainSerial();
-        }
-        else if( cmd == 'm' ) {
-            uint16_t m = Serial.parseInt();
-            m = constrain(m, 0, sizeof(settings)-1);
-            //if( m >= sizeof(settings) ) { m = 0; }
-            config.hid_mode = m;
-            config_flash_store.write(config);
-            Serial.printf("resetting board to mode=%d...\n",m);
-            drainSerial();
-            delay(10);
-            Watchdog.enable(250); // resets after 250msec
         }
         else if( cmd == 'e' ) {           // echo on/off
             int onoff = Serial.parseInt();
@@ -207,7 +175,8 @@ uint8_t send_buff[64];
 // sent FEATURE report (report_type == 3)
 uint16_t get_report_callback (uint8_t report_id, hid_report_type_t report_type, 
                               uint8_t* buffer, uint16_t reqlen) {
-    board_leds_set(0x0000FF);
+    leds.fill(0x0000FF);
+    leds.show();
 
     Serial.print("GET_REPORT:");
     Serial.printf(" report_id: %d",report_id);
@@ -242,7 +211,8 @@ uint16_t get_report_callback (uint8_t report_id, hid_report_type_t report_type,
 // received FEATURE report (report_type == 3)
 void set_report_callback(uint8_t report_id, hid_report_type_t report_type, 
                           uint8_t const* buffer, uint16_t bufsize) {
-    board_leds_set(0x00FF00);
+    leds.fill(0x00FF00);
+    leds.show();
     
     Serial.print("SET_REPORT:");
     Serial.print(" report_id:"); Serial.print(report_id);

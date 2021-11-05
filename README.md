@@ -24,7 +24,7 @@ command-line tool to test out every API call in
      * [Test Hardware](#test-hardware)
   * [Compiling](#compiling)
      * [Platform-specific requirements](#platform-specific-requirements)
-        * [Mac:](#mac)
+        * [Mac](#mac)
         * [Windows](#windows)
         * [Linux](#linux)
 
@@ -197,7 +197,7 @@ HIDAPI_DIR=../hidapi-libusb-test make
 
 ### Platform-specific requirements
 
-#### Mac:
+#### Mac
 - Install XCode
 - Specifically, Command-line Tools
   ```

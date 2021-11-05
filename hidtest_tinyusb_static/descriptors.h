@@ -5,7 +5,7 @@
 #define MODE_INOUT_NO_REPORTID       1
 #define MODE_INOUT_WITH_REPORTIDS    2
 #define MODE_FEATURE_NO_REPORTID     3
-#define MODE_FEATURE_WITH_REPORTIDS  4
+#define MODE_FEATURE_WITH_REPORTID   4
 #define MODE_BLINK1                 98
 #define MODE_TEENSY                 99
 
@@ -36,19 +36,19 @@
 #define PID TRINKET_PID
 #define HID_DESC HID_DESC_FEATURE_NO_REPORTID()
 
-#elif MODE == MODE_FEATURE_WITH_REPORTIDS
-#define MODE_STR "INOUT_WITH_REPORTIDS"
-#define MODE_INFO "Responds to IN/OUT reports, with ReportID #1 (8-byte) & ReportId #2 (64-byte)"
+#elif MODE == MODE_FEATURE_WITH_REPORTID
+#define MODE_STR "FEATURE_WITH_REPORTID"
+#define MODE_INFO "Responds to FEATURE reports, with reportId 1 (32-bytes)"
 #define VID TRINKET_VID
 #define PID TRINKET_PID
-#define HID_DESC HID_DESC_INOUT_WITH_REPORTIDS()
+#define HID_DESC HID_DESC_FEATURE_WITH_REPORTID(32)
 
 #elif MODE == MODE_BLINK1
 #define MODE_STR "BLINK1"
-#define MODE_INFO "Responds to IN/OUT reports w/ no ReportIDs"
+#define MODE_INFO "Responds to FEATURE reports with reportID 1 (8-byte) & reportId 2 (60-byte)"
 #define VID BLINK1_VID
 #define PID BLINK1_PID
-#define HID_DESC HID_DESC_BLINK1usbMK2()
+#define HID_DESC HID_DESC_BLINK1MK2()
 
 #elif MODE == MODE_TEENSY
 #define MODE_STR "TEENSY"
@@ -111,8 +111,8 @@
     0xC0                            /* end collection */ \
 
 #define HID_DESC_FEATURE_NO_REPORTID(report_size, ...) \
-    0x06, 0xAB, 0xFF, \
-    0x0A, 0x00, 0x20, \
+    0x06, 0xAB, 0xFF,              /* Usage Page (Vendor Defined 0xFFAB) */ \
+    0x0A, 0x00, 0x20,              /* Usage (0x0200) */ \
     0xA1, 0x01,                    /* COLLECTION (Application) */ \
     0x15, 0x00,                    /*   LOGICAL_MINIMUM (0) */ \
     0x26, 0xff, 0x00,              /*   LOGICAL_MAXIMUM (255)*/ \
@@ -120,25 +120,20 @@
     0x95, report_size,             /*   REPORT_COUNT (64) */ \
     0x09, 0x00,                    /*   USAGE (Undefined) */ \
     0xb2, 0x02, 0x01,              /*   FEATURE (Data,Var,Abs,Buf) */ \
-    0xc0,                          /* END_COLLECTION */ \
+    0xc0                           /* END_COLLECTION */ \
 
 #define HID_DESC_FEATURE_WITH_REPORTID(report_size, ...) \
-    0x06, 0xAB, 0xFF, \
-    0x0A, 0x00, 0x20, \
+    0x06, 0xAB, 0xFF,              /* Usage Page (Vendor Defined 0xFFAB) */ \
+    0x0A, 0x00, 0x20,              /* Usage (0x0200) */ \
     0xA1, 0x01,                    /* COLLECTION (Application) */ \
     0x15, 0x00,                    /*   LOGICAL_MINIMUM (0) */ \
     0x26, 0xff, 0x00,              /*   LOGICAL_MAXIMUM (255)*/ \
     0x75, 0x08,                    /*   REPORT_SIZE (8) */ \
     0x85, 1,                       /*   REPORT_ID (1) */ \
-    0x95, report_sie,              /*   REPORT_COUNT (xx) */ \
+    0x95, report_size,             /*   REPORT_COUNT (32) */ \
     0x09, 0x00,                    /*   USAGE (Undefined) */ \
     0xb2, 0x02, 0x01,              /*   FEATURE (Data,Var,Abs,Buf) */ \
-    0x75, 0x08,                    /*   REPORT_SIZE (8) */ \
-    0x85, 2,                       /*   REPORT_ID (1) */ \
-    0x95, report_size,             /*   REPORT_COUNT (xx) */ \
-    0x09, 0x00,                    /*   USAGE (Undefined) */ \
-    0xb2, 0x02, 0x01,              /*   FEATURE (Data,Var,Abs,Buf) */ \
-    0xc0,                          /* END_COLLECTION */ \
+    0xc0                           /* END_COLLECTION */ \
 
 
 // .....
@@ -177,7 +172,7 @@
     0x95, 60,                      /*   REPORT_COUNT (60) */ \
     0x09, 0x00,                    /*   USAGE (Undefined) */ \
     0xb2, 0x02, 0x01,              /*   FEATURE (Data,Var,Abs,Buf) */ \
-    0xc0,                          /* END_COLLECTION */ \
+    0xc0                           /* END_COLLECTION */ \
 
 
 // HID Generic Input & Output
