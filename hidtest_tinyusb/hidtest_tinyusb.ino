@@ -26,10 +26,10 @@
  *      
  * - Those are two examples of the different "commands" this sketch understands
  *   via its serial input.  The full list of commands are:
- *    - I - send INPUT report to host
- *    - F - send FEATURE report to host
- *    - E - Turn report echo on/off
- *    - H - print help
+ *    - I   - send INPUT report to host
+ *    - F   - send FEATURE report to host
+ *    - E   - Turn report echo on/off
+ *    - H/? - print help
  * 
  * Examples:
  * - Set MODE == MODE_INOUT_NO_REPORTID  (64-byte, no reportIds)
@@ -45,8 +45,8 @@
 // Config: Pick one of these
 //#define MODE  MODE_INOUT_NO_REPORTID
 //#define MODE  MODE_INOUT_WITH_REPORTIDS
-//#define MODE  MODE_FEATURE_NO_REPORTID
-#define MODE  MODE_FEATURE_WITH_REPORTID
+#define MODE  MODE_FEATURE_NO_REPORTID
+//#define MODE  MODE_FEATURE_WITH_REPORTID
 //#define MODE  MODE_BLINK1
 //#define MODE  MODE_TEENSY
 
@@ -121,7 +121,7 @@ void drainSerial()
 void loop()
 {
     if( statusMillisNext - millis() > 3000 ) {
-        Serial.printf("hidtest_tinyusb vidpid=%4X:%4X mode=%s... ('?' for help)\n",
+        Serial.printf("hidtest_tinyusb vidpid=%04X:%04X mode=%s... ('?' for help)\n",
                       VID,PID, MODE_STR);
         statusMillisNext = millis() + 3000;
         leds.fill(0xff00ff);
@@ -131,11 +131,11 @@ void loop()
     // Serial monitor commands
     if( Serial.available() ) {
         char cmd = tolower( Serial.read() );
-        if( cmd == '?' || cmd == 'h') {
+        if( cmd == '?' || cmd == 'h') {   // help
             help();
             drainSerial();
         }
-        else if( cmd == 'e' ) { // echo on/off
+        else if( cmd == 'e' ) {           // echo on/off
             int onoff = Serial.parseInt();
             echoReports = onoff;
             Serial.printf("Setting echoReports to %d\n", echoReports);
@@ -216,7 +216,8 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type,
     
     Serial.print("SET_REPORT:");
     Serial.print(" report_id:"); Serial.print(report_id);
-    Serial.print(" report_type:"); Serial.print(report_type);
+    Serial.printf(" report_type:%d (%s)",report_type,
+                  (report_type==3) ? "FEATURE" : (report_type==0) ? "OUTPUT" : "OTHER");
     Serial.print(" bufsize:"); Serial.print(bufsize);
     Serial.println();
     printbuf(buffer, bufsize);

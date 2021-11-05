@@ -48,7 +48,7 @@
 #define MODE_INFO "Responds to FEATURE reports with reportID 1 (8-byte) & reportId 2 (60-byte)"
 #define VID BLINK1_VID
 #define PID BLINK1_PID
-#define HID_DESC HID_DESC_BLINK1usbMK2()
+#define HID_DESC HID_DESC_BLINK1MK2()
 
 #elif MODE == MODE_TEENSY
 #define MODE_STR "TEENSY"
