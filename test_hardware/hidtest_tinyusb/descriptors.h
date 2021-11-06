@@ -85,7 +85,7 @@
     0x91, 0x02,                     /* Output (array) */ \
     0xC0                            /* end collection */ \
 
-#define HID_DESC_BLINK1MK2(report_size, ...) \
+#define HID_DESC_BLINK1MK2() \
     0x06, 0xAB, 0xFF, \
     0x0A, 0x00, 0x20, \
     0xA1, 0x01,                    /* COLLECTION (Application) */ \

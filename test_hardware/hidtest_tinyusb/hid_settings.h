@@ -5,14 +5,18 @@
 
 typedef struct
 {
+    // USB information
     uint16_t vid;
     uint16_t pid;
     const char* manufacturer_str;
     const char* product_str;
+
+    // USB HID Report Descriptor
     const uint8_t* desc_hid_report;
     const uint8_t desc_size;
-    const char* info;
-    //  uint16_t reportSize;
+
+    // information for us humans using this sketch
+    const char* info; 
 } HIDSetting;
 
 const uint8_t hid_report_inout_noid_32[] = { HID_DESC_INOUT_NO_REPORTID( 32 ) };
@@ -61,7 +65,7 @@ const HIDSetting setting_blink1 =
  .product_str = "blink(1) in name only",
  .desc_hid_report = hid_report_blink1,
  .desc_size = sizeof(hid_report_blink1),
- .info = "blink(1) like w/ FEATURE reportIds 1 (8-bytes) and 2 (60-bytes)"
+ .info = "blink(1) like w/ FEATURE reports 1 (8-bytes) and 2 (60-bytes)"
 };
 
 

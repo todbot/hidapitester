@@ -1,15 +1,21 @@
 /**
  * hidtest_tinyusb.ino
- * -- general purpose HID device that handles IN/OUT/FEATURE reports, 
- *     with or without Report IDs
+ * -- Arduino sketch for TinyUSB-compatible SAMD21/51 devices, to create various 
+ *    general purpose HID device that handles IN/OUT/FEATURE reports, 
+ *    with or without Report IDs
  *
  * To compile:
  * - Use QTPy M0, Trinket M0, or other device supported by "Adafruit_TinyUSB"
  * - Install "Adafruit SAMD Board" board package with Boards Manager
- * - Install "Adafruit_TinyUSB" library with Library Manager (version 1.6.0 or better)
+ * - Install following libraries with Library Manager
+ *    - Adafruit_TinyUSB" (version 1.6.0 or better)
+ *    - Adafruit_SleepyDog
+ *    - FlashStorage
+ *    - AdafruitNeopixel
  * - In Arduino IDE, select Adafruit SAMD-based board (e.g. "Trinket M0")
- * - In Arduino IDE, set Tools->USB Stack->TinyUSB
+ * - In Arduino IDE, set Tools -> USB Stack -> TinyUSB
  *
+ * FIXME: The below needs to be updated
  * To use:
  * - Set the MODE define to one of the available HID Report Descriptor types
  * - Upload sketch to board
@@ -66,7 +72,7 @@ FlashStorage(config_flash_store, StartupConfig);
 StartupConfig config;
 
 // load the saved config from flash
-int loadConfig() {
+int load_config() {
   config = config_flash_store.read();
   // If this is the first run the "valid" value should be "false"...
   if ( !config.valid ) {
@@ -81,7 +87,7 @@ int loadConfig() {
 void setup()
 {
     //config.hid_mode = 0; // FIXME: read from NVM
-    loadConfig();
+    load_config();
     
     HIDSetting setting = settings[ config.hid_mode ];
     
@@ -113,31 +119,33 @@ void setup()
 void print_help()
 {
     HIDSetting setting = settings[config.hid_mode];
-    Serial.println("Here is where help would be\n");
-    Serial.printf("Current mode: %s\n", setting.info);
-    Serial.println("hid report descriptor:");
-    printbuf(setting.desc_hid_report, sizeof(setting.desc_hid_report));
+    Serial.println("Help for hidtest_tinyusb");
+    Serial.print("Available commands are:\n"
+                 "  - I   - send INPUT report to host\n"
+                 "  - F   - send FEATURE report to host\n"
+                 "  - E   - Turn report echo on/off\n"
+                 "  - M   - Select device mode\n"
+                 "  - H/? - Print this help\n");
+    Serial.println("Current HID report descriptor:");
+    print_buff(setting.desc_hid_report, sizeof(setting.desc_hid_report));
 
+    Serial.printf("Current mode: %d '%s'\n", config.hid_mode, setting.info);
     Serial.println("Available modes:");
-    for( uint8_t i=0; i < 4; i++ ) { // why can't I use sizeof(settings) here
+    for( uint8_t i=0; i < 4; i++ ) { // FIXME: why can't I use sizeof(settings) here
         HIDSetting s = settings[i];
         Serial.printf("  Mode:%d\n", i);
-        Serial.printf("    description: %s\n", s.info);
-        Serial.printf("    vid:%d pid:%d\n", s.vid,s.pid);
-        Serial.printf("    mfg:'%s' product:'%s'\n", s.manufacturer_str, s.product_str);
+        Serial.printf("    description:"); Serial.println(s.info);
+        Serial.printf("    vid/pid/mfg/prod:");
+        Serial.printf(" %04X/%04X:", s.vid,s.pid);
+        Serial.printf(" %s - %s\n", s.manufacturer_str, s.product_str);
     }
-}
-
-// clear output the input buffer
-void drainSerial()
-{
-    while( Serial.read() != -1 )  { } // drain any extra
+    Serial.println();
 }
 
 void loop()
 {
     HIDSetting setting = settings[config.hid_mode];
-    
+    /*    
     if( statusMillisNext - millis() > 3000 ) {
         Serial.printf("hidtest_tinyusb: mode=%d",config.hid_mode );
         Serial.printf("  device='%s'\n", setting.info);
@@ -148,37 +156,37 @@ void loop()
         statusMillisNext = millis() + 3000;
         board_leds_set(0xff00ff);
     }
+    */
 
     // Serial monitor commands
     if( Serial.available() ) {
         char cmd = tolower( Serial.read() );
-        if( cmd == '?' || cmd == 'h') {   // help
+        if( cmd == '?' || cmd == 'h') {           // help
             print_help();
-            drainSerial();
+            drain_serial();
         }
-        else if( cmd == 'm' ) {
+        else if( cmd == 'm' ) {                   // change device mode
             uint16_t m = Serial.parseInt();
             m = constrain(m, 0, sizeof(settings)-1);
-            //if( m >= sizeof(settings) ) { m = 0; }
             config.hid_mode = m;
             config_flash_store.write(config);
-            Serial.printf("resetting board to mode=%d...\n",m);
-            drainSerial();
             delay(10);
+            Serial.printf("Resetting board to mode=%d...\n",m);
+            drain_serial();
             Watchdog.enable(250); // resets after 250msec
         }
-        else if( cmd == 'e' ) {           // echo on/off
+        else if( cmd == 'e' ) {                  // echo on/off
             int onoff = Serial.parseInt();
             echoReports = onoff;
             Serial.printf("Setting echoReports to %d\n", echoReports);
-            drainSerial();
+            drain_serial();
         }
-        else if( cmd == 'f' || cmd == 'i' ) { // send feature or input report
+        else if( cmd == 'f' || cmd == 'i' ) {    // send feature or input report
             int len = Serial.parseInt();
             if( len==0 ) {
                 Serial.println("Invalid report length specified");
             }
-            Serial.printf("cmd: %c len:%d\n", cmd,len);
+            //Serial.printf("cmd: %c len:%d\n", cmd,len);
             
             // FIXME: danger, fixed-size buffs below
             String str = Serial.readString();
@@ -186,19 +194,22 @@ void loop()
             uint8_t tmpbuf[64]; // buffer of bytes converted from cstr
             memset(tmpbuf, 0, sizeof(tmpbuf)); // ensure all zeros
             str.getBytes( (unsigned char*)cstr, sizeof(cstr));
-            Serial.printf("serial read:'%s'\n",cstr);
+            Serial.printf("  Serial read:'%s'\n",cstr);
             int cnt = hexread( cstr, tmpbuf, sizeof(tmpbuf) );
             if( cnt > 0 ) {
-                Serial.printf("Serial read buf: len=%d\n",cnt);
+                Serial.printf("  Serial read buf: len=%d\n",cnt);
                 usb_hid.sendReport( tmpbuf[0], tmpbuf+1, len-1);
                 memset(tmpbuf,0,sizeof(tmpbuf)); // clear it out after use
             }
         } else {
-            Serial.printf("unrecognized cmd: %c\n",cmd);
+            Serial.printf("Unrecognized cmd: %c\n",cmd);
+            drain_serial();
+            print_help();
         }
     }
 }
 
+// FIXME: 
 uint8_t send_buff[64];
 
 // Invoked when received GET_REPORT control request
@@ -232,7 +243,7 @@ uint16_t get_report_callback (uint8_t report_id, hid_report_type_t report_type,
     }
         
     Serial.printf("Sending buffer for reportId:%d:\n", report_id);
-    printbuf(buffer, reqlen);
+    print_buff(buffer, reqlen);
     
     return reqlen;
 }
@@ -250,7 +261,7 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type,
                   (report_type==3) ? "FEATURE" : (report_type==0) ? "OUTPUT" : "OTHER");
     Serial.print(" bufsize:"); Serial.print(bufsize);
     Serial.println();
-    printbuf(buffer, bufsize);
+    print_buff(buffer, bufsize);
     
     // echo back anything we received from host
     if( echoReports ) {
@@ -260,8 +271,11 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type,
     }
 }
 
+// clear output the input buffer
+void drain_serial() { while( Serial.read() != -1 )  { } }
+
 // print out a byte buffer to serial port
-void printbuf(const uint8_t* buf, int buflen)
+void print_buff(const uint8_t* buf, int buflen)
 {
   int screen_width = 32;
   for( int i=0; i<buflen; i++ ) { 
