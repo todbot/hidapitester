@@ -48,8 +48,16 @@ endif
 ############ Linux (hidraw)
 ifeq "$(OS)" "linux"
 
-LIBS = `pkg-config libudev --libs`
+PKGS = libudev
+
+ifneq ($(wildcard $(HIDAPI_DIR)),)
 OBJS = $(HIDAPI_DIR)/linux/hid.o
+else
+PKGS += hidapi-hidraw hidapi-libusb
+endif
+
+CFLAGS += $(shell pkg-config --cflags $(PKGS))
+LIBS = $(shell pkg-config --libs $(PKGS))
 EXE=
 
 endif
@@ -57,7 +65,7 @@ endif
 
 ############# common
 
-CFLAGS+=-I $(HIDAPI_DIR)/hidapi
+CFLAGS += -I $(HIDAPI_DIR)/hidapi
 OBJS += hidapitester.o
 
 all: hidapitester
