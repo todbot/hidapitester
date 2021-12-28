@@ -66,7 +66,7 @@ Those commands are:
 ### Listing Devices
 
 * `--list` shows devices similar to `lsusb`
-* `--list-usages` includes usagePage and usage atributes
+* `--list-usages` includes usagePage and usage attributes
 * `--list-detail` shows all available information,
 including usagePage, usage, path, and more
 * Use `--vidpid`, `--usagePage`, or `--usage` to filter the output
