@@ -26,7 +26,7 @@ jobs:
         shell: bash
         run: |
           sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*
-          sudo xcode-select -s "/Applications/Xcode_12.3.app"
+          sudo xcode-select -s "/Applications/Xcode_12.5.app"
 
       - name: fetch hidapi
         shell: bash
