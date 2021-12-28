@@ -43,7 +43,7 @@ const HIDSetting setting_inout_id_32 =
  .product_str = "INOUT 32bytes rId1",
  .desc_hid_report = hid_report_inout_id_32,
  .desc_size = sizeof(hid_report_inout_id_32),
- .info = "IN/OUT reports 32 bytes, with reportId"
+ .info = "IN/OUT reports 32 bytes, with reportId 1"
 };
 
 const HIDSetting setting_teensy =
@@ -54,7 +54,7 @@ const HIDSetting setting_teensy =
   .product_str = "FakeTeensy",
   .desc_hid_report = hid_report_teensy,
   .desc_size = sizeof(hid_report_teensy),
-  .info = "Teensy RAWHID like"
+  .info = "Teensy RAWHID like, 64-byte IN/OUT reports, no reportId"
 };
 
 const HIDSetting setting_blink1 =
@@ -65,17 +65,17 @@ const HIDSetting setting_blink1 =
  .product_str = "blink(1) in name only",
  .desc_hid_report = hid_report_blink1,
  .desc_size = sizeof(hid_report_blink1),
- .info = "blink(1) like w/ FEATURE reports 1 (8-bytes) and 2 (60-bytes)"
+ .info = "blink(1) like, FEATURE reports 1 (8-bytes) and 2 (60-bytes)"
 };
 
 
 const HIDSetting settings[] =
-    {
-     setting_inout_noid_32,
-     setting_inout_id_32,
-     setting_teensy,
-     setting_blink1,
-    };
+{
+ setting_inout_noid_32,
+ setting_inout_id_32,
+ setting_teensy,
+ setting_blink1,
+};
 
 
 #endif

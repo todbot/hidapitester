@@ -81,7 +81,7 @@ void setup()
     TinyUSBDevice.setID( VID, PID ); // VID,PID set in 'descriptors.h'
     TinyUSBDevice.setManufacturerDescriptor("hidapitester");
     TinyUSBDevice.setProductDescriptor("hidtest_tinyusb");
-    //USBDevice.setSerialNumberDescriptor("1234");
+    TinyUSBDevice.setSerialNumberDescriptor("12345678");
     usb_hid.enableOutEndpoint(true);
     usb_hid.setPollInterval(2);
     usb_hid.setReportDescriptor(desc_hid_report, sizeof(desc_hid_report));

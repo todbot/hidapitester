@@ -143,8 +143,8 @@ void print_help()
                  "  - i   - send INPUT report to host\n"
                  "  - f   - send FEATURE report to host\n"
                  "  - e   - Turn report echo on/off\n"
-                 "  - m   - Select device mode\n"
-                 "  - c   - Show current device config\n"
+                 "  - m   - Select device mode (causes device reset)\n"
+                 "  - c   - Show current device config and available modes\n"
                  "  - ?   - Print this help\n");
     Serial.printf("hidtest_tinyusb: hid_mode:%d ",config.hid_mode);
     Serial.printf(" vidpid=%04X:%04X\n", setting.vid, setting.pid);
@@ -200,14 +200,15 @@ void loop()
             uint8_t tmpbuf[64]; // buffer of bytes converted from cstr
             memset(tmpbuf, 0, sizeof(tmpbuf)); // ensure all zeros
             str.getBytes( (unsigned char*)cstr, sizeof(cstr));
-            Serial.printf("  Serial read:'%s'\n",cstr);
             int cnt = hexread( cstr, tmpbuf, sizeof(tmpbuf) );
             if( cnt > 0 ) {
-                Serial.printf("  Serial read buf: len=%d\n",cnt);
+                Serial.printf("|-- Serial read buf: len=%d\n",cnt);
+                print_buff(tmpbuf, cnt, "    ");
                 usb_hid.sendReport( tmpbuf[0], tmpbuf+1, len-1);
                 memset(tmpbuf,0,sizeof(tmpbuf)); // clear it out after use
             }
-        } else {
+        }
+        else {
             Serial.printf("Unrecognized cmd: %c\n",cmd);
             drain_serial();
             print_help();
@@ -232,7 +233,7 @@ uint16_t get_report_callback (uint8_t report_id, hid_report_type_t report_type,
     Serial.printf(" reqlen:%d\n",reqlen);
 
     if( echoReports ) {
-        Serial.println("  Echoing previouly received report");
+        Serial.println("|-- Echoing previously received report");
         memcpy(buffer, send_buff, reqlen);
     }
     else {
@@ -246,7 +247,7 @@ uint16_t get_report_callback (uint8_t report_id, hid_report_type_t report_type,
         buffer[7] = '4';
     }
 
-    Serial.printf("  Sending buffer for reportId:%d:\n", report_id);
+    Serial.printf("|-- Sending buffer for reportId:%d:\n", report_id);
     print_buff(buffer, reqlen, "    ");
     
     return reqlen;
@@ -259,7 +260,7 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type,
                           uint8_t const* buffer, uint16_t bufsize) {
     board_leds_set(0x00FF00);
     
-    Serial.printf("RECEIVE %s REPORT: ",
+    Serial.printf("RECEIVED %s REPORT: ",
                  (report_type==3) ? "FEATURE" : (report_type==0) ? "OUTPUT" : "OTHER");
     Serial.printf(" report_id: %d",report_id);
     Serial.printf(" report_type: %d" ,report_type);
@@ -269,9 +270,9 @@ void set_report_callback(uint8_t report_id, hid_report_type_t report_type,
     
     // echo back anything we received from host
     if( echoReports ) {
-        Serial.println("  Echoing back report");
-        memcpy( send_buff, buffer, bufsize); // save for GET_REPORT if feature report
-        usb_hid.sendReport(0, buffer, bufsize);
+        Serial.printf("|-- Echoing report from OUT to IN, on reportId:%d\n", report_id); 
+        memcpy(send_buff, buffer, bufsize); // save for GET_REPORT if feature report
+        usb_hid.sendReport(report_id, buffer, bufsize);
     }
 }
 
