@@ -2,14 +2,15 @@
 
 Simple command-line program to exercise HIDAPI
 
-[![Build Status linux](https://api.cirrus-ci.com/github/todbot/hidapitester.svg?task=linux)](https://cirrus-ci.com/github/todbot/hidapitester)
-[![Build Status macosx](https://api.cirrus-ci.com/github/todbot/hidapitester.svg?task=macosx)](https://cirrus-ci.com/github/todbot/hidapitester)
-[![Build Status windows](https://api.cirrus-ci.com/github/todbot/hidapitester.svg?task=windows)](https://cirrus-ci.com/github/todbot/hidapitester)
+[![Build Status linux](https://github.com/todbot/hidapitester/actions/workflows/linux.yml/badge.svg)](https://github.com/todbot/hidapitester/actions?query=workflow%3Alinux)
+[![Build Status macos](https://github.com/todbot/hidapitester/actions/workflows/macos.yml/badge.svg)](https://github.com/todbot/hidapitester/actions?query=workflow%3Amacos)
+[![Build Status windows](https://github.com/todbot/hidapitester/actions/workflows/windows.yml/badge.svg)](https://github.com/todbot/hidapitester/actions?query=workflow%3Awindows)
 
 
-The point of `hidapitester` is to provide a simple low-dependency
-command-line tool to test out every API call in
+The goal of the `hidapitester` program is to provide a simple,
+low-dependency command-line tool to test out every API call in
 [hidapi](https://github.com/libusb/hidapi).
+Default builds are fully-static with no requirements on a system-installed `hidapi`.
 
 <img src="./docs/screencast1a.gif" width="500">
 
