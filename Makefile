@@ -19,10 +19,8 @@ endif
 ifeq "$(UNAME)" "Linux"
 	OS=linux
 endif
-
-# deal with stupid Windows not having 'cc'
-ifeq (default,$(origin CC))
-  CC = gcc
+ifeq "$(UNAME)" "FreeBSD"
+	OS=freebsd
 endif
 
 
@@ -39,6 +37,11 @@ endif
 ############# Windows
 ifeq "$(OS)" "windows"
 
+# deal with Windows not having 'cc'
+ifeq (default,$(origin CC))
+  CC = gcc
+endif
+
 LIBS += -lsetupapi -Wl,--enable-auto-import -static-libgcc -static-libstdc++
 OBJS = $(HIDAPI_DIR)/windows/hid.o
 EXE=.exe
@@ -54,6 +57,15 @@ EXE=
 
 endif
 
+########### FreeBSD
+ifeq "$(OS)" "freebsd"
+
+CFLAGS += -I/usr/local/include
+OBJS = $(HIDAPI_DIR)/libusb/hid.o
+LIBS += -L/usr/local/lib -lusb -liconv -pthread
+EXE=
+
+endif
 
 ############# common
 
