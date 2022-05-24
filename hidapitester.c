@@ -253,11 +253,7 @@ int main(int argc, char* argv[])
                 msginfo("Set usage to 0x%04hX (%d)\n", usage,usage);
             }
             else if( cmd == CMD_SERIALNUMBER ) {
-#ifdef _WIN32   // omg windows
-                swprintf( serial_wstr, sizeof(serial_wstr), L"%S", optarg); // convert to wchar_t*
-#else
                 swprintf( serial_wstr, sizeof(serial_wstr), L"%s", optarg); // convert to wchar_t*
-#endif
             }
             else if( cmd == CMD_LIST ||
                      cmd == CMD_LIST_USAGES ||
