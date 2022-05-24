@@ -29,6 +29,7 @@ static void print_usage(char *myname)
 "  --vidpid <vid/pid>          Filter by vendorId/productId (comma/slash delim)\n"
 "  --usagePage <number>        Filter by usagePage \n"
 "  --usage <number>            Filter by usage \n"
+"  --serial <string>           Filter by serial number \n"
 "  --list                      List HID devices (by filters)\n"
 "  --list-usages               List HID devices w/ usages (by filters)\n"
 "  --list-detail               List HID devices w/ details (by filters)\n"
@@ -48,7 +49,7 @@ static void print_usage(char *myname)
 "\n"
 "Notes: \n"
 " . Commands are executed in order. \n"
-" . --vidpid, --usage, --usagePage act as filters to --open and --list \n"
+" . --vidpid, --usage, --usagePage, --serial act as filters to --open and --list \n"
 "\n"
 "Examples: \n"
 ". List all devices \n"
@@ -75,6 +76,7 @@ enum {
     CMD_VIDPID,
     CMD_USAGE,
     CMD_USAGEPAGE,
+    CMD_SERIALNUMBER,
     CMD_LIST,
     CMD_LIST_USAGES,
     CMD_LIST_DETAIL,
@@ -161,7 +163,6 @@ int str2buf(void* buffer, char* delim_str, char* string, int buflen, int bufelem
 int main(int argc, char* argv[])
 {
     uint8_t buf[MAX_BUF];   // data buffer for send/recv
-    wchar_t wstr[MAX_STR];  // string buffer for USB strings
     hid_device *dev = NULL; // HIDAPI device we will open
     int res;
     int i;
@@ -173,6 +174,7 @@ int main(int argc, char* argv[])
     uint16_t pid = 0;        // vendorId
     uint16_t usage_page = 0; // usagePage to search for, if any
     uint16_t usage = 0;      // usage to search for, if any
+    wchar_t serial_wstr[MAX_STR/4] = {L'\0'}; // serial number string rto search for, if any
     char devpath[MAX_STR];   // path to open, if filter by usage
 
     setbuf(stdout, NULL);  // turn off buffering of stdout
@@ -194,6 +196,7 @@ int main(int argc, char* argv[])
          {"vidpid",       required_argument, &cmd,   CMD_VIDPID},
          {"usage",        required_argument, &cmd,   CMD_USAGE},
          {"usagePage",    required_argument, &cmd,   CMD_USAGEPAGE},
+         {"serial",       required_argument, &cmd,   CMD_SERIALNUMBER},
          {"list",         no_argument,       &cmd,   CMD_LIST},
          {"list-usages",  no_argument,       &cmd,   CMD_LIST_USAGES},
          {"list-detail",  no_argument,       &cmd,   CMD_LIST_DETAIL},
@@ -249,6 +252,13 @@ int main(int argc, char* argv[])
                 }
                 msginfo("Set usage to 0x%04hX (%d)\n", usage,usage);
             }
+            else if( cmd == CMD_SERIALNUMBER ) {
+#ifdef _WIN32   // omg windows
+                swprintf( serial_wstr, sizeof(serial_wstr), L"%S", optarg); // convert to wchar_t*
+#else
+                swprintf( serial_wstr, sizeof(serial_wstr), L"%s", optarg); // convert to wchar_t*
+#endif
+            }
             else if( cmd == CMD_LIST ||
                      cmd == CMD_LIST_USAGES ||
                      cmd == CMD_LIST_DETAIL ) {
@@ -258,7 +268,8 @@ int main(int argc, char* argv[])
                 cur_dev = devs;
                 while (cur_dev) {
                     if( (!usage_page || cur_dev->usage_page == usage_page) &&
-                        (!usage || cur_dev->usage == usage) ) {
+                        (!usage || cur_dev->usage == usage) &&
+                        (serial_wstr[0]==L'\0' || wcscmp(cur_dev->serial_number, serial_wstr)==0) ) {
                         if( cmd == CMD_LIST_USAGES ) {
                             printf("%04X/%04X / %04hX/%04hX  %ls - %ls\n",
                                    cur_dev->vendor_id, cur_dev->product_id,
@@ -302,7 +313,8 @@ int main(int argc, char* argv[])
                         if( (!vid || cur_dev->vendor_id == vid) &&
                             (!pid || cur_dev->product_id == pid) &&
                             (!usage_page || cur_dev->usage_page == usage_page) &&
-                            (!usage || cur_dev->usage == usage) ) {
+                            (!usage || cur_dev->usage == usage) &&
+                            (serial_wstr[0]==L'\0' || wcscmp(cur_dev->serial_number, serial_wstr)==0) ) {
                             strncpy(devpath, cur_dev->path, MAX_STR); // save it!
                         }
                         cur_dev = cur_dev->next;
