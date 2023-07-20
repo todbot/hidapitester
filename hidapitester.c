@@ -36,6 +36,7 @@ static void print_usage(char *myname)
 "  --open                      Open device with previously selected filters\n"
 "  --open-path <pathstr>       Open device by path (as in --list-detail) \n"
 "  --close                     Close currently open device \n"
+"  --get-report-descriptor     Get the report descriptor\n"
 "  --send-feature <datalist>   Send Feature report (1st byte reportId, if used)\n"
 "  --read-feature <reportId>   Read Feature report (w/ reportId, 0 if unused) \n"
 "  --send-output <datalist>    Send Ouput report to device \n"
@@ -56,6 +57,8 @@ static void print_usage(char *myname)
 "   hidapitester --list \n"
 ". List details of all devices w/ vendorId 0x2341 \n"
 "   hidapitester --vidpid 2341 --list-detail \n"
+". Open vid/pid xxxx:yyyy, get report descriptor\n"
+"   hidapitester --vidpid xxxx:yyyy --open --get-report-descriptor \n"
 ". Open device with usagePage 0xFFAB, send Feature report on reportId 1\n"
 "   hidapitester -l 9 --usagePage 0xFFAB --open --send-feature 1,99,44,22 \n"
 ". Open vid/pid xxxx:yyyy, send 64-byte Output report, read 64-byte Input report\n"
@@ -83,6 +86,7 @@ enum {
     CMD_OPEN,
     CMD_OPEN_PATH,
     CMD_CLOSE,
+    CMD_GET_REPORT_DESCRIPTOR,
     CMD_SEND_OUTPUT,
     CMD_SEND_FEATURE,
     CMD_READ_INPUT,
@@ -176,6 +180,8 @@ int main(int argc, char* argv[])
     uint16_t usage = 0;      // usage to search for, if any
     wchar_t serial_wstr[MAX_STR/4] = {L'\0'}; // serial number string rto search for, if any
     char devpath[MAX_STR];   // path to open, if filter by usage
+    int descriptorMaxLen = HID_API_MAX_REPORT_DESCRIPTOR_SIZE;
+    unsigned char descriptorBuf[descriptorMaxLen];
 
     setbuf(stdout, NULL);  // turn off buffering of stdout
 
@@ -210,6 +216,7 @@ int main(int argc, char* argv[])
          {"read-in",      optional_argument, &cmd,   CMD_READ_INPUT},
          {"read-feature", required_argument, &cmd,   CMD_READ_FEATURE},
          {"read-input-forever",  optional_argument, &cmd,   CMD_READ_INPUT_FOREVER},
+         {"get-report-descriptor", no_argument, &cmd, CMD_GET_REPORT_DESCRIPTOR},
          {NULL,0,0,0}
         };
     char* shortopts = "vht:l:qb:";
@@ -346,6 +353,14 @@ int main(int argc, char* argv[])
                     hid_close(dev);
                     dev = NULL;
                 }
+            }
+            else if( cmd == CMD_GET_REPORT_DESCRIPTOR ) {
+                if( !dev ) {
+                    msg("Error on send: no device opened.\n"); break;
+                }
+                printf("Report Descriptor:\n");
+                int descriptorLen = hid_get_report_descriptor(dev, descriptorBuf, descriptorMaxLen);
+                printbuf(descriptorBuf, descriptorLen, print_base, print_width);
             }
             else if( cmd == CMD_SEND_OUTPUT  ||
                      cmd == CMD_SEND_FEATURE ) {
