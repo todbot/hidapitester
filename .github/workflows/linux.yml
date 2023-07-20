@@ -29,7 +29,7 @@ jobs:
         shell: bash
         run: |
           git clone https://github.com/libusb/hidapi hidapi-libusb
-          cd hidapi-libusb && git checkout hidapi-0.10.1
+          cd hidapi-libusb && git checkout hidapi-0.14.0
 
       - name: compile hidapitester
         shell: bash
