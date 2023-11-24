@@ -24,6 +24,21 @@ ifeq "$(UNAME)" "FreeBSD"
 endif
 
 
+# construct version string from git tag
+# allow overriding of GIT_TAG for automated builds
+# If we have a file .git-tag (from source archive), read it
+ifneq ($(wildcard .git-tag),)
+	GIT_TAG_RAW=$(file <.git-tag)
+endif
+GIT_TAG_RAW?=$(strip $(shell git tag 2>&1 | tail -1 | cut -f1 -d' '))
+# deal with case of no git or no git tags, check for presence of "v" (i.e. "v1.93")
+ifneq ($(findstring v,$(GIT_TAG_RAW)), v)
+	GIT_TAG_RAW:="v$(strip $(shell date -r . +'%Y%m%d' ))"
+endif
+GIT_TAG?="$(GIT_TAG_RAW)"
+HIDAPITESTER_VERSION?="$(GIT_TAG)"
+
+
 #############  Mac
 ifeq "$(OS)" "macos"
 
@@ -78,6 +93,7 @@ endif
 ############# common
 
 CFLAGS += -I $(HIDAPI_DIR)/hidapi
+CFLAGS += -DHIDAPITESTER_VERSION=\"$(HIDAPITESTER_VERSION)\"
 OBJS += hidapitester.o
 
 all: hidapitester

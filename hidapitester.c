@@ -19,6 +19,10 @@
 #define MAX_STR 1024  // for manufacturer, product strings
 #define MAX_BUF 1024  // for buf reads & writes
 
+// normally this is obtained from git tags and filled out by the Makefile
+#ifndef HIDAPITESTER_VERSION
+#define HIDAPITESTER_VERSION "v0.0"
+#endif
 
 static void print_usage(char *myname)
 {
@@ -46,6 +50,7 @@ static void print_usage(char *myname)
 "  --base <base>, -b <base>    Set decimal or hex buffer print mode\n"
 "  --quiet, -q                 Print out nothing except when reading data \n"
 "  --verbose, -v               Print out extra information\n"
+"  --version                   Print out hidapitester and hidapi version\n"
 "\n"
 "Notes: \n"
 " . Commands are executed in order. \n"
@@ -73,6 +78,7 @@ static void print_usage(char *myname)
 // local states for the "cmd" option variable
 enum {
     CMD_NONE = 0,
+    CMD_VERSION,
     CMD_VIDPID,
     CMD_USAGE,
     CMD_USAGEPAGE,
@@ -187,6 +193,7 @@ int main(int argc, char* argv[])
     struct option longoptions[] =
         {
          {"help", no_argument, 0, 'h'},
+         {"version",      no_argument, &cmd,         CMD_VERSION},
          {"verbose",      no_argument, 0,            'v'},
          {"quiet",        optional_argument, 0,      'q'},
          {"timeout",      required_argument, 0,      't'},
@@ -253,6 +260,7 @@ int main(int argc, char* argv[])
                 msginfo("Set usage to 0x%04hX (%d)\n", usage,usage);
             }
             else if( cmd == CMD_SERIALNUMBER ) {
+
                 swprintf( serial_wstr, sizeof(serial_wstr), L"%s", optarg); // convert to wchar_t*
             }
             else if( cmd == CMD_LIST ||
@@ -277,7 +285,7 @@ int main(int argc, char* argv[])
                                    cur_dev->vendor_id, cur_dev->product_id,
                                    cur_dev->manufacturer_string, cur_dev->product_string );
                         }
-                        
+
                         if( cmd == CMD_LIST_DETAIL ) {
                             printf("  vendorId:      0x%04hX\n", cur_dev->vendor_id);
                             printf("  productId:     0x%04hX\n", cur_dev->product_id);
@@ -411,6 +419,11 @@ int main(int argc, char* argv[])
                 res = hid_get_feature_report(dev, buf, buflen);
                 msg("read %d bytes:\n",res);
                 printbuf(buf, buflen, print_base, print_width);
+            }
+            else if( cmd == CMD_VERSION ) {
+                printf("hidapitester version: %s\n", HIDAPITESTER_VERSION);
+                printf("hidapi version: %d.%d.%d\n",
+                       HID_API_VERSION_MAJOR, HID_API_VERSION_MINOR, HID_API_VERSION_PATCH);
             }
 
             break; // case 0 (longopts without shortops)
