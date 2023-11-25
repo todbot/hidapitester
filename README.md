@@ -43,11 +43,12 @@ for builds for:
 `hidapitester` works by parsing a list of arguments as commands it executes in order.
 Those commands are:
 
-```
+```text
   --vidpid <vid/pid>          Filter by vendorId/productId (comma/slash delim)
   --usagePage <number>        Filter by usagePage
   --usage <number>            Filter by usage
   --list                      List HID devices (by filters)
+  --list-usages               List HID devices w/ usages (by filters)
   --list-detail               List HID devices w/ details (by filters)
   --open                      Open device with previously selected filters
   --open-path <pathstr>       Open device by path (as in --list-detail)
@@ -73,16 +74,15 @@ Those commands are:
 including usagePage, usage, path, and more
 * Use `--vidpid`, `--usagePage`, or `--usage` to filter the output
 
-* The `--vidpid` commmands allows full or partial specification of the
+* The `--vidpid` commmand allows full or partial specification of the
 Vendor Id and Product Id.  These are all valid:
 
-  ```
+```text
   --vidpid 16C0:FFAB  # specify both vid 0x16C0 and pid 0xFFAB
   --vidpid 16C0       # just specify the vid
   --vidpid 0:FFAB     # just specify the pid
   --vidpid 16C0:FFAB  # use colon instead of slash
-  ```
-
+```
 
 ### Opening Devices
 
@@ -92,7 +92,7 @@ multiple times, or `--open` one device, `--close` it, and `--open` another.
 The `--open` command will take whichever of VID, PID, usagePage, and usage are
 specified.  So these are valid:
 
-```
+```text
 hidapitester --vidpid 16C0 --usagePage FFAB --open      # specify vid and usagePage
 hidapitester --usage FFAB --open                        # specify only usagePage
 hidapitester --0/0486  --open                           # specify only pid
@@ -110,7 +110,8 @@ If not using reportIds, the first byte should be `0`.
 The length of the actual report is set by `--length <num>`.
 
 Thus to send a 16-byte report on reportId 3 with only the 1st byte set to "42":
-```
+
+```text
 hidapitester [...] --length 16 --send-output 3,42
 ```
 
@@ -122,16 +123,16 @@ specified by the `--length` argument.  If using reportIds, this length should be
 more than the buffer to read (e.g. if the report is 16-bytes, length is 17).
 
 So to read a 16-byte report on reportId 3:
-```
+
+```text
 hidapitester [...] --length 17 --read-input 3
 ```
-
 
 ## Examples
 
 Get version info from a blink(1):
 
-```
+```text
 hidapitester --vidpid 0x27b8/0x1ed --open --length 9 --send-feature 1,99,0,255,0  --read-feature 1 --close
 Opening device at vid/pid 27b8/1ed
 Set buflen to 9
@@ -143,7 +144,8 @@ Closing device
 ```
 
 Send data to/from "TeensyRawHid" sketch:
-```
+
+```text
 hidapitester --vidpid 16C0 --usagePage 0xFFAB --open --send-output 0x4f,33,22,0xff  --read-input
 Opening device, vid/pid:0x16C0/0x0000, usagePage/usage: FFAB/0
 Device opened
@@ -160,7 +162,6 @@ Reading 64-byte input report, 250 msec timeout...read 64 bytes:
 Closing device
 ```
 
-
 ### Test Hardware
 
 - The "TeensyRawHid" directory contains an Arduino sketch for
@@ -174,12 +175,11 @@ This sketch sends a 64-byte Input report every 2 seconds, with no reportId.
 The sketch recives 64-byte Output or Feature reports, and prints them
 to Serial Monitor
 
-
 ## Compiling
 
 Building `hidapitester` is done via a very simple Makefile.
 
-```
+```text
 git clone https://github.com/libusb/hidapi
 git clone https://github.com/todbot/hidapitester
 cd hidapitester
@@ -190,7 +190,7 @@ make
 If you install `hidapi` in a different directory, you can set the Makefile
 variable `HIDAPI_DIR` before invoking `make`:
 
-```
+```text
 # hidapi is in dir 'hidapi-libusb-test'
 cd hidapitester
 HIDAPI_DIR=../hidapi-libusb-test make clean
@@ -198,22 +198,26 @@ HIDAPI_DIR=../hidapi-libusb-test make
 ./hidapitester --list
 ```
 
-
 ### Platform-specific requirements
 
 #### Mac
+
 - Install XCode
 - Specifically, Command-line Tools
-  ```
-  sudo xcode-select --install
-  ```
+
+```text
+sudo xcode-select --install
+```
 
 #### Windows
+
 - Install MSYS2
 - Build in a MinGW / MSYS2 window
 
 #### Linux
+
 - Install udev, pkg-config
-  ```
-  sudo apt install libudev1 libudev-dev pkg-config
-  ```
+
+```text
+sudo apt install libudev1 libudev-dev pkg-config
+```
