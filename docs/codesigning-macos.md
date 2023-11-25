@@ -82,3 +82,7 @@ xcrun stapler staple hidapitester.pkg
 
 - https://github.com/txoof/codesign/blob/main/Signing_and_Notarizing_HOWTO.md
 - https://scriptingosx.com/2021/07/notarize-a-command-line-tool-with-notarytool/
+- https://melatonin.dev/blog/how-to-code-sign-and-notarize-macos-audio-plugins-in-ci/
+
+- https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/customizing_the_notarization_workflow
+- https://developer.apple.com/documentation/security/notarizing_macos_software_before_distribution/resolving_common_notarization_issues#3087721
