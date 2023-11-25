@@ -119,14 +119,15 @@ hidapitester [...] --length 16 --send-output 3,42
 Send Feature reports the same way with `--send-feature`.
 
 Read Input reports from device with `--read-input`.  If using reportIds,
-the argument should be the reportId number: `--read-input 1`.  The length to read is
-specified by the `--length` argument.  If using reportIds, this length should be one
-more than the buffer to read (e.g. if the report is 16-bytes, length is 17).
+use `--read-input-report n` where the `n` argument is the reportId number:
+e.g.  `--read-input 1`.  The length to read is specified by the `--length` argument.
+If using reportIds, this length should be one more than the buffer to read
+(e.g. if the report is 16-bytes, length is 17).
 
 So to read a 16-byte report on reportId 3:
 
 ```text
-hidapitester [...] --length 17 --read-input 3
+hidapitester [...] --length 17 --read-input-report 3
 ```
 
 ## Examples
