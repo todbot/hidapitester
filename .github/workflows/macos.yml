@@ -43,6 +43,8 @@ jobs:
         run: |
           ls -al
           HIDAPI_DIR=./hidapi-libusb make package
+          ./hidapitester --version
+          file ./hidapitester
 
       - name: Archive hidapitester
         uses: actions/upload-artifact@v2
