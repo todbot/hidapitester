@@ -52,6 +52,7 @@ Those commands are:
   --open                      Open device with previously selected filters
   --open-path <pathstr>       Open device by path (as in --list-detail)
   --close                     Close currently open device
+  --get-report-descriptor     Get the report descriptor
   --send-feature <datalist>   Send Feature report (1st byte reportId, if used)
   --read-feature <reportId>   Read Feature report (w/ reportId, 0 if unused)
   --send-output <datalist>    Send Ouput report to device
@@ -99,6 +100,8 @@ hidapitester --vidpid 16C0/486 --usagePage FFAB --open  # specify vid,pid,usageP
 ```
 
 ### Reading and Writing Reports
+
+Get the report descriptor with `--get-report-descriptor`.
 
 Send Output reports to devices with `--send-output`. The argument to the command
 is the data to send: `--send-output 1,2,0xff,30,40,0x50`.
