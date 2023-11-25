@@ -23,7 +23,7 @@ jobs:
 
       - name: setup prerequisites (windows)
         run: echo "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
-      
+
       - name: fetch hidapi
         shell: bash
         run: |
@@ -33,3 +33,7 @@ jobs:
       - name: compile hidapitester
         shell: bash
         run: HIDAPI_DIR=./hidapi-libusb make
+
+      - name: run hidapitester
+        shell: bash
+        run: ./hidapitester --version && ./hidapitester --list

@@ -24,7 +24,7 @@ jobs:
       - name: setup prerequisites (linux)
         shell: bash
         run: sudo apt install pkg-config libudev-dev libusb-1.0-0-dev
-          
+
       - name: fetch hidapi
         shell: bash
         run: |
@@ -37,4 +37,4 @@ jobs:
 
       - name: run hidapitester
         shell: bash
-        run: ./hidapitester --help && ./hidapitester --list
+        run: ./hidapitester --version && ./hidapitester --list
