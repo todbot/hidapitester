@@ -44,8 +44,9 @@ static void print_usage(char *myname)
 "  --send-feature <datalist>   Send Feature report (1st byte reportId, if used)\n"
 "  --read-feature <reportId>   Read Feature report (w/ reportId, 0 if unused) \n"
 "  --send-output <datalist>    Send Ouput report to device \n"
-"  --read-input [reportId]     Read Input report (w/ opt. reportId, if unused)\n"
-"  --read-input-forever [rId]  Read Input reports in a loop forever \n"
+"  --read-input                Read Input reports \n"
+"  --read-input-forever        Read Input reports in a loop forever \n"
+"  --read-input-report <reportId>  Read Input report from specific reportId \n"
 "  --length <len>, -l <len>    Set buffer length in bytes of report to send/read\n"
 "  --timeout <msecs>           Timeout in millisecs to wait for input reads \n"
 "  --base <base>, -b <base>    Set decimal or hex buffer print mode\n"
@@ -98,6 +99,7 @@ enum {
     CMD_READ_INPUT,
     CMD_READ_FEATURE,
     CMD_READ_INPUT_FOREVER,
+    CMD_READ_INPUT_REPORT,
 };
 
 bool msg_quiet = false;
@@ -219,8 +221,9 @@ int main(int argc, char* argv[])
          {"send-output",  required_argument, &cmd,   CMD_SEND_OUTPUT},
          {"send-out",     required_argument, &cmd,   CMD_SEND_OUTPUT},
          {"send-feature", required_argument, &cmd,   CMD_SEND_FEATURE},
-         {"read-input",   optional_argument, &cmd,   CMD_READ_INPUT},
-         {"read-in",      optional_argument, &cmd,   CMD_READ_INPUT},
+         {"read-input",   no_argument,       &cmd,   CMD_READ_INPUT},
+         {"read-in",      no_argument,       &cmd,   CMD_READ_INPUT},
+         {"read-input-report", required_argument, &cmd,  CMD_READ_INPUT_REPORT},
          {"read-feature", required_argument, &cmd,   CMD_READ_FEATURE},
          {"read-input-forever",  optional_argument, &cmd,   CMD_READ_INPUT_FOREVER},
          {"get-report-descriptor", no_argument, &cmd, CMD_GET_REPORT_DESCRIPTOR},
@@ -403,10 +406,9 @@ int main(int argc, char* argv[])
                 if( !buflen) {
                     msg("Error on read: buffer length is 0. Use --len to specify.\n"); break;
                 }
-                uint8_t report_id = (optarg) ? strtol(optarg,NULL,10) : 0;
                 do {
-                    msg("Reading %d-byte input report %d, %d msec timeout...",
-                      buflen, report_id, timeout_millis);
+                    msg("Reading up to %d-byte input report, %d msec timeout...",
+                      buflen, timeout_millis);
                     res = hid_read_timeout(dev, buf, buflen, timeout_millis);
                     msg("read %d bytes:\n", res);
                     if( res > 0 ) {
@@ -418,6 +420,22 @@ int main(int argc, char* argv[])
                         break;
                     }
                 } while( cmd == CMD_READ_INPUT_FOREVER );
+            }
+            else if( cmd == CMD_READ_INPUT_REPORT ) {
+                if( !dev ) {
+                    msg("Error on read: no device opened.\n"); break;
+                }
+                if( !buflen) {
+                    msg("Error on read: buffer length is 0. Use --len to specify.\n");
+                    break;
+                }
+                uint8_t report_id = (optarg) ? strtol(optarg,NULL,10) : 0;
+                buf[0] = report_id;
+                msg("Reading %d-byte input report using hid_get_input_report, report_id %d...",
+                    buflen, report_id);
+                res = hid_get_input_report(dev, buf, buflen);
+                msg("read %d bytes:\n",res);
+                printbuf(buf, buflen, print_base, print_width);
             }
             else if( cmd == CMD_READ_FEATURE ) {
 

@@ -57,8 +57,9 @@ Those commands are:
   --send-feature <datalist>   Send Feature report (1st byte reportId, if used)
   --read-feature <reportId>   Read Feature report (w/ reportId, 0 if unused)
   --send-output <datalist>    Send Ouput report to device
-  --read-input [reportId]     Read Input report (w/ opt. reportId, if unused)
-  --read-input-forever [rId]  Read Input reports in a loop forever
+  --read-input                Read Input reports
+  --read-input-forever        Read Input reports in a loop forever
+  --read-input-report <reportId>  Read Input report from specific reportId
   --length <len>, -l <len>    Set buffer length in bytes of report to send/read
   --timeout <msecs>           Timeout in millisecs to wait for input reads
   --base <base>, -b <base>    Set decimal or hex buffer print mode
