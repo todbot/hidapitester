@@ -279,6 +279,12 @@ int main(int argc, char* argv[])
 
                 struct hid_device_info *devs, *cur_dev;
                 devs = hid_enumerate(vid,pid); // 0,0 = find all devices
+                if (!devs) {
+                    fprintf(stderr, "No HID devices found\n");
+                    hid_exit();
+                    return 1;
+                }
+
                 cur_dev = devs;
                 while (cur_dev) {
                     if( (!usage_page || cur_dev->usage_page == usage_page) &&
@@ -322,8 +328,20 @@ int main(int argc, char* argv[])
 
                     struct hid_device_info *devs, *cur_dev;
                     devs = hid_enumerate(vid, pid); // 0,0 = find all devices
+                    if (!devs) {
+                        msg("Error: no HID devices found for given vid/pid\n");
+                        hid_exit();
+                        return 1;
+                    }
                     cur_dev = devs;
                     while (cur_dev) {
+                        msginfo("Device found: path: %s, vid: 0x%04X, pid: 0x%04X, usage_page: 0x%04X, usage: 0x%04X\n",
+                            cur_dev->path,
+                            cur_dev->vendor_id,
+                            cur_dev->product_id,
+                            cur_dev->usage_page,
+                            cur_dev->usage);
+
                         if( (!vid || cur_dev->vendor_id == vid) &&
                             (!pid || cur_dev->product_id == pid) &&
                             (!usage_page || cur_dev->usage_page == usage_page) &&
@@ -336,13 +354,16 @@ int main(int argc, char* argv[])
                     hid_free_enumeration(devs);
 
                     if( devpath[0] ) {
-                        dev = hid_open_path(devpath);
-                        if( dev==NULL ) {
-                            msg("Error: could not open device\n");
+                        msginfo("Opening device by path: %s\n",devpath);
+                        hid_device *handle = hid_open_path(devpath);
+                        if (!handle) {
+                            msg("Error: could not open device at path: %s\n",devpath);
+                            msg("Error: %ls\n", hid_error(handle));
+                            hid_exit();
+                            return 1;
                         }
-                        else {
-                            msg("Device opened\n");
-                        }
+                        dev = handle;
+                        msg("Device opened\n");
                     }
                     else {
                         msg("Error: no matching devices\n");
