@@ -3,12 +3,12 @@
 name: macos
 
 # Controls when the action will run. Triggers the workflow on push or pull request
-# events but only for the master branch
+# events but only for the main branch
 on:
   push:
-    branches: [ master ]
+    branches: [ main ]
   pull_request:
-    branches: [ master ]
+    branches: [ main ]
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
@@ -63,8 +63,8 @@ jobs:
             build/hidapitester
           retention-days: 2
 
-      - name: Upload hidapitester artifacts (master)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+      - name: Upload hidapitester artifacts (main)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
         uses: actions/upload-artifact@v7
         with:
           name: hidapitester-macos
