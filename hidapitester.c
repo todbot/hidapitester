@@ -189,8 +189,7 @@ int main(int argc, char* argv[])
     uint16_t usage = 0;      // usage to search for, if any
     wchar_t serial_wstr[MAX_STR/4] = {L'\0'}; // serial number string rto search for, if any
     char devpath[MAX_STR];   // path to open, if filter by usage
-    int descriptorMaxLen = HID_API_MAX_REPORT_DESCRIPTOR_SIZE;
-    unsigned char descriptorBuf[descriptorMaxLen];
+    unsigned char descriptorBuf[HID_API_MAX_REPORT_DESCRIPTOR_SIZE];
 
     setbuf(stdout, NULL);  // turn off buffering of stdout
 
@@ -393,7 +392,8 @@ int main(int argc, char* argv[])
                     msg("Error on send: no device opened.\n"); break;
                 }
                 printf("Report Descriptor:\n");
-                int descriptorLen = hid_get_report_descriptor(dev, descriptorBuf, descriptorMaxLen);
+                int descriptorLen = hid_get_report_descriptor(dev, descriptorBuf, HID_API_MAX_REPORT_DESCRIPTOR_SIZE
+                );
                 printbuf(descriptorBuf, descriptorLen, print_base, print_width);
             }
             else if( cmd == CMD_SEND_OUTPUT  ||

@@ -54,3 +54,10 @@ dkms.conf
 # build products
 *.cast
 hidapitester
+
+# VS Code transient files
+.vscode/*.VC.db
+.vscode/*.VC.opendb
+.vscode/*.code-workspace
+.vscode/ipch/
+build/
