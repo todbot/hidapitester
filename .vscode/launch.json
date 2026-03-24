@@ -1,0 +1,58 @@
+{
+    "version": "0.2.0",
+    "inputs": [
+        {
+            "id": "hidapitesterPath",
+            "type": "command",
+            "command": "cmake.launchTargetPath",
+            "args": {
+                "targetName": "hidapitester"
+            }
+        },
+        {
+            "id": "hidapitesterDir",
+            "type": "command",
+            "command": "cmake.getLaunchTargetDirectory",
+            "args": {
+                "targetName": "hidapitester"
+            }
+        }
+    ],
+    "configurations": [
+        {
+            "name": "Launch hidapitester (Windows/MSVC)",
+            "type": "cppvsdbg",
+            "request": "launch",
+            "program": "${input:hidapitesterPath}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${input:hidapitesterDir}",
+            "environment": [],
+            "console": "integratedTerminal"
+        },
+        {
+            "name": "Launch hidapitester (Linux/macOS)",
+            "type": "cppdbg",
+            "request": "launch",
+            "program": "${input:hidapitesterPath}",
+            "args": [],
+            "stopAtEntry": false,
+            "cwd": "${input:hidapitesterDir}",
+            "environment": [],
+            "console": "integratedTerminal",
+            "linux": {
+                "MIMode": "gdb",
+                "setupCommands": [
+                    {
+                        "description": "Enable pretty-printing for gdb",
+                        "text": "-enable-pretty-printing",
+                        "ignoreFailures": true
+                    }
+                ]
+            },
+            "osx": {
+                "MIMode": "lldb"
+            }
+        }
+    ]
+}

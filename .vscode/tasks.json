@@ -1,0 +1,47 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "Run hidapitester with args",
+            "type": "shell",
+            "command": "\"${input:hidapitesterPath}\" ${input:hidapitesterArgs}",
+            "options": {
+                "cwd": "${input:hidapitesterDir}"
+            },
+            "windows": {
+                "command": "& \"${input:hidapitesterPath}\" ${input:hidapitesterArgs}"
+            },
+            "linux": {
+                "command": "\"${input:hidapitesterPath}\" ${input:hidapitesterArgs}"
+            },
+            "osx": {
+                "command": "\"${input:hidapitesterPath}\" ${input:hidapitesterArgs}"
+            },
+            "problemMatcher": []
+        }
+    ],
+    "inputs": [
+        {
+            "id": "hidapitesterPath",
+            "type": "command",
+            "command": "cmake.launchTargetPath",
+            "args": {
+                "targetName": "hidapitester"
+            }
+        },
+        {
+            "id": "hidapitesterDir",
+            "type": "command",
+            "command": "cmake.getLaunchTargetDirectory",
+            "args": {
+                "targetName": "hidapitester"
+            }
+        },
+        {
+            "id": "hidapitesterArgs",
+            "type": "promptString",
+            "description": "Enter command-line arguments for hidapitester",
+            "default": ""
+        }
+    ]
+}
