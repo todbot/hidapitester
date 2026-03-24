@@ -19,7 +19,7 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
 
       # xcode 12.5 does not have Arm support?
       #- name: update to xcode w/ arm
@@ -29,27 +29,45 @@ jobs:
       #    sudo xcode-select -s "/Applications/Xcode_12.5.app"
 
       - name: fetch hidapi
-        shell: bash
-        run: |
-          git clone https://github.com/libusb/hidapi hidapi-libusb
-          cd hidapi-libusb && git checkout hidapi-0.14.0
+        uses: actions/checkout@v6
+        with:
+          repository: https://github.com/libusb/hidapi
+          path: hidapi
 
-      - name: compile hidapitester
+      - name: compile hidapitester Makefile
         shell: bash
-        run: HIDAPI_DIR=./hidapi-libusb make
+        run: HIDAPI_DIR=./hidapi make
 
-      - name: run hidapitester
+      - name: run hidapitester (Makefile)
         shell: bash
         run: ./hidapitester --version && ./hidapitester --list && file ./hidapitester
 
-      # - name: package hidapitester
-      #   shell: bash
-      #   run: |
-      #     ls -al
-      #     HIDAPI_DIR=./hidapi-libusb make package
+      - name: Configure hidapitester with CMake
+        run: |
+          mkdir build
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
 
-      - name: Archive hidapitester
-        uses: actions/upload-artifact@v2
+      - name: Build hidapitester with CMake
+        run: cmake --build build --config Release
+
+      - name: Run hidapitester (CMake)
+        run: ./build/hidapitester --version && ./build/hidapitester --list && file ./build/hidapitester
+
+      - name: Upload hidapitester artifacts (PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
         with:
           name: hidapitester-macos
-          path: hidapitester*.zip
+          path: |
+            hidapitester
+            build/hidapitester
+          retention-days: 2
+
+      - name: Upload hidapitester artifacts (master)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v7
+        with:
+          name: hidapitester-macos
+          path: |
+            hidapitester
+            build/hidapitester

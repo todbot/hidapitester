@@ -19,22 +19,50 @@ jobs:
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
-      - uses: actions/checkout@v2
+      - uses: actions/checkout@v6
 
       - name: setup prerequisites (linux)
         shell: bash
         run: sudo apt install pkg-config libudev-dev libusb-1.0-0-dev
 
       - name: fetch hidapi
-        shell: bash
-        run: |
-          git clone https://github.com/libusb/hidapi hidapi-libusb
-          cd hidapi-libusb && git checkout hidapi-0.14.0
+        uses: actions/checkout@v6
+        with:
+          repository: https://github.com/libusb/hidapi
+          path: hidapi
 
-      - name: compile hidapitester
+      - name: compile hidapitester Makefile
         shell: bash
-        run: HIDAPI_DIR=./hidapi-libusb make
+        run: HIDAPI_DIR=./hidapi make
 
-      - name: run hidapitester
+      - name: run hidapitester (Makefile)
         shell: bash
         run: ./hidapitester --version && ./hidapitester --list
+
+      - name: Configure hidapitester with CMake
+        run: |
+          mkdir build
+          cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+
+      - name: Build hidapitester with CMake
+        run: cmake --build build --config Release
+
+      - name: Run hidapitester (CMake)
+        run: ./build/hidapitester --version && ./build/hidapitester --list
+
+      - name: Upload hidapitester artifacts (PR)
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: hidapitester-linux
+          path: |
+            build/hidapitester
+          retention-days: 2
+
+      - name: Upload hidapitester artifacts (master)
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+        uses: actions/upload-artifact@v7
+        with:
+          name: hidapitester-linux
+          path: |
+            build/hidapitester
