@@ -182,6 +182,10 @@ to Serial Monitor
 
 Building `hidapitester` is done via a very simple Makefile.
 
+There is also a CMakeLists.txt if you prefer CMake. 
+
+Building with the simple Makefile:
+
 ```text
 git clone https://github.com/libusb/hidapi
 git clone https://github.com/todbot/hidapitester
@@ -200,6 +204,14 @@ HIDAPI_DIR=../hidapi-libusb-test make clean
 HIDAPI_DIR=../hidapi-libusb-test make
 ./hidapitester --list
 ```
+
+To build with CMake:
+
+```text
+mkdir build
+cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
+```
+
 
 ### Platform-specific requirements
 
