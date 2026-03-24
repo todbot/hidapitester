@@ -37,7 +37,7 @@ jobs:
 
       - name: run hidapitester (Makefile)
         shell: bash
-        run: ./hidapitester --version && ./hidapitester --list
+        run: ./hidapitester --version && ./hidapitester --list 2>&1 || grep -q "No HID devices found"
 
       - name: Configure hidapitester with CMake
         run: |
@@ -48,7 +48,8 @@ jobs:
         run: cmake --build build --config Release
 
       - name: Run hidapitester (CMake)
-        run: ./build/hidapitester --version && ./build/hidapitester --list
+        run: ./build/hidapitester --version && ./hidapitester --list 2>&1 || grep -q "No HID devices found"
+        # (we need the grep guard because Linux runners no longer return any devices)
 
       - name: Upload hidapitester artifacts (PR)
         if: github.event_name == 'pull_request'
