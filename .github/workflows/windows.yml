@@ -27,7 +27,7 @@ jobs:
       - name: fetch hidapi
         uses: actions/checkout@v6
         with:
-          repository: https://github.com/libusb/hidapi
+          repository: libusb/hidapi
           path: hidapi
 
       - name: compile hidapitester Makefile
