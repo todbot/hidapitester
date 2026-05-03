@@ -183,8 +183,8 @@ int main(int argc, char* argv[])
     int cmd = CMD_NONE;     //
     int timeout_millis = 250;
 
-    uint16_t vid = 0;        // productId
-    uint16_t pid = 0;        // vendorId
+    uint16_t vid = 0;        // vendorId
+    uint16_t pid = 0;        // productId
     uint16_t usage_page = 0; // usagePage to search for, if any
     uint16_t usage = 0;      // usage to search for, if any
     wchar_t serial_wstr[MAX_STR/4] = {L'\0'}; // serial number string rto search for, if any
@@ -272,7 +272,7 @@ int main(int argc, char* argv[])
             }
             else if( cmd == CMD_SERIALNUMBER ) {
 
-                swprintf( serial_wstr, sizeof(serial_wstr), L"%s", optarg); // convert to wchar_t*
+                swprintf( serial_wstr, sizeof(serial_wstr)/sizeof(wchar_t), L"%s", optarg);
             }
             else if( cmd == CMD_LIST ||
                      cmd == CMD_LIST_USAGES ||
@@ -452,7 +452,7 @@ int main(int argc, char* argv[])
                     msg("Error on read: buffer length is 0. Use --len to specify.\n");
                     break;
                 }
-                uint8_t report_id = (optarg) ? strtol(optarg,NULL,10) : 0;
+                uint8_t report_id = (optarg) ? strtol(optarg,NULL,0) : 0;
                 buf[0] = report_id;
                 msg("Reading %d-byte input report using hid_get_input_report, report_id %d...",
                     buflen, report_id);
@@ -469,7 +469,7 @@ int main(int argc, char* argv[])
                     msg("Error on read: buffer length is 0. Use --len to specify.\n");
                     break;
                 }
-                uint8_t report_id = (optarg) ? strtol(optarg,NULL,10) : 0;
+                uint8_t report_id = (optarg) ? strtol(optarg,NULL,0) : 0;
                 buf[0] = report_id;
                 msg("Reading %d-byte feature report, report_id %d...",buflen, report_id);
                 res = hid_get_feature_report(dev, buf, buflen);
