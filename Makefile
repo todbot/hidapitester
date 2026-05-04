@@ -96,6 +96,14 @@ CFLAGS += -I $(HIDAPI_DIR)/hidapi
 CFLAGS += -DHIDAPITESTER_VERSION=\"$(HIDAPITESTER_VERSION)\"
 OBJS += hidapitester.o
 
+help:
+	@echo "Targets:"
+	@echo "  all        Build hidapitester (default)"
+	@echo "  clean      Remove build artifacts"
+	@echo "  test       Run no-hardware tests"
+	@echo "  test-hw    Run hardware tests (requires hidtest_tinyusb device)"
+	@echo "  package    Zip the binary for the current platform"
+
 all: hidapitester
 
 $(OBJS): %.o: %.c
@@ -108,6 +116,12 @@ hidapitester: $(OBJS)
 clean:
 	rm -f $(OBJS)
 	rm -f hidapitester$(EXE)
+
+test: hidapitester
+	sh tests/test_nohardware.sh ./hidapitester$(EXE)
+
+test-hw: hidapitester
+	sh tests/test_hardware.sh ./hidapitester$(EXE)
 
 package: hidapitester$(EXE)
 	@echo "Packaging up hidapitester for '$(OS)-$(ARCH)'"

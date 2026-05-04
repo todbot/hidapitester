@@ -1,59 +1,42 @@
 /**
  * hidtest_tinyusb.ino
- * -- Arduino sketch for TinyUSB-compatible SAMD21/51 devices, to create various 
- *    general purpose HID device that handles IN/OUT/FEATURE reports, 
- *    with or without Report IDs
+ * - Arduino sketch for TinyUSB-compatible SAMD21/51, RP2040, and ESP32-S2/S3
+ *   devices that creates a configurable USB HID device for testing hidapitester.
+ *   Supports IN/OUT/FEATURE reports with or without Report IDs.
  *
  * To compile:
- * - Use QTPy M0, Trinket M0, or other device supported by "Adafruit_TinyUSB"
- * - Install "Adafruit SAMD Board" board package with Boards Manager
- * - Install following libraries with Library Manager
- *    - Adafruit_TinyUSB" (version 1.6.0 or better)
- *    - Adafruit_SleepyDog
- *    - FlashStorage
- *    - AdafruitNeopixel
- * - In Arduino IDE, select Adafruit SAMD-based board (e.g. "Trinket M0")
+ * - Install the appropriate board package (Adafruit SAMD, Arduino-Pico, or ESP32)
+ * - Install the following libraries via Library Manager:
+ *    - Adafruit_TinyUSB (version 1.6.0 or later)
+ *    - Adafruit_SleepyDog   (watchdog used for board reset)
+ *    - Adafruit_NeoPixel
  * - In Arduino IDE, set Tools -> USB Stack -> TinyUSB
+ * - Set DEFAULT_HID_MODE below to choose the starting mode
  *
- * FIXME: The below needs to be updated
- * To use:
- * - Set the MODE define to one of the available HID Report Descriptor types
- * - Upload sketch to board
- * - Open the Serial Monitor to see reports received
- * - To send reports, use Serial monitor to send a string that looks like:
- *    - Send 64-byte INPUT report w/ no reportId w/ first 4 bytes 11,22,33,44:
- *       I 65 0x00 0x11 0x22 0x33 0x44 
- *    - Send 8-byte FEATURE report on reportId 1:
- *       F 9  0x01 0x11 0x22 0x33 0x44 0x55 0x66 0x77 0x88
- *    - The first character is report type to send
- *    - The next number is how many bytes to send (one more than report size)
- *    - The remaining numbers (hex or dec) are the bytes to send in the report,
- *       any undefined bytes are set to 0x00.
- *      
- * - Those are two examples of the different "commands" this sketch understands
- *   via its serial input.  The full list of commands are:
- *    - I   - send INPUT report to host
- *    - F   - send FEATURE report to host
- *    - E   - Turn report echo on/off
- *    - H/? - print help
- * 
- * Examples:
- * - Set MODE == MODE_INOUT_NO_REPORTID  (64-byte, no reportIds)
- *    - hidapitester:
- *     hidapitester --vidpid=239A:801E -l 65 -t 1500 --send-output 0,1,2,3,4,5,6
- * 
- * - Set MODE == MODE_FEATURE_WITH_REPORTID
- *    - use "hidapitester" like:
- *      - hidapitester --vidpid=239A:801E -l 33 -t 1500 \
- *             --open --send-feature 1,1,2,3,4,5,6 --read-feature 1
+ * Serial commands (115200 baud):
+ *    ?/h  - print help
+ *    c    - show current config and available modes
+ *    m N  - switch to mode N (saves to flash, resets device)
+ *    e N  - set echo mode on (1) or off (0)
+ *    i len byte [byte ...]  - send INPUT report to host
+ *    f len byte [byte ...]  - send FEATURE report to host
+ *
+ * Modes (see hid_settings.h):
+ *    0  27B8:EE32  IN/OUT 32 bytes, no report ID
+ *    1  27B8:EE33  IN/OUT 32 bytes, report ID 1
+ *    2  27B8:EEEE  IN/OUT 64 bytes, no report ID (Teensy-style)
+ *    3  27B8:4444  FEATURE only, report ID 1 (8 bytes) + ID 2 (60 bytes)
+ *
+ * hidapitester examples:
+ *   hidapitester --vidpid 27b8:ee32 -l 32 --open --send-output 1,2,3,4
+ *   hidapitester --vidpid 27b8:4444 -l 9 --open --send-feature 1,99,44,22 --read-feature 1
  */
 
 #include <Adafruit_TinyUSB.h>
 #include <Adafruit_SleepyDog.h>
-#include <FlashStorage.h>  // only samd21 & samd51 currently 
+#include <EEPROM.h>
 
 #include "hid_settings.h"
-
 #include "board_config.h"
 
 Adafruit_USBD_HID usb_hid;
@@ -61,25 +44,25 @@ Adafruit_USBD_HID usb_hid;
 uint32_t statusMillisNext;
 bool echoReports = false;
 
-int hid_mode = 0;
+#define DEFAULT_HID_MODE HID_MODE_INOUT_NOID_32  // change to set the mode used on first boot
 
 typedef struct {
   boolean valid;
   int hid_mode;
 } StartupConfig;
 
-FlashStorage(config_flash_store, StartupConfig);
 StartupConfig config;
 
 // load the saved config from flash
 int load_config() {
-  config = config_flash_store.read();
+  EEPROM.begin(sizeof(StartupConfig));
+  EEPROM.get(0, config);
   if ( !config.valid ) {   // for first run, "valid" will be "false"...
-      config.hid_mode = 0;
+      config.hid_mode = DEFAULT_HID_MODE;
       config.valid = true;
       return -1;  // had to fix the config
   }
-  return 0; // laod was okay
+  return 0; // load was okay
 }
 
 // the setup function runs once when you press reset or power the board
@@ -125,7 +108,7 @@ void print_config()
     print_buff(setting.desc_hid_report, setting.desc_size, "  ");
     Serial.println();
     Serial.println("Available modes:");
-    for( uint8_t i=0; i < 4; i++ ) { // FIXME: why can't I use sizeof(settings) here
+    for( uint8_t i=0; i < HID_MODE_COUNT; i++ ) {
         HIDSetting s = settings[i];
         Serial.printf("  Mode:%d ", i);
         Serial.printf("  ('%s')\n", s.info);
@@ -152,7 +135,7 @@ void print_help()
 
 void loop()
 {
-    HIDSetting setting = settings[config.hid_mode];
+    //HIDSetting setting = settings[config.hid_mode];
     if( statusMillisNext - millis() > 10000 ) {
         statusMillisNext = millis() + 10000;
         board_leds_set(0xff00ff);
@@ -172,10 +155,11 @@ void loop()
         }
         else if( cmd == 'm' ) {                   // change device mode
             uint16_t m = Serial.parseInt();
-            m = constrain(m, 0, sizeof(settings)-1);
+            m = constrain(m, 0, HID_MODE_COUNT - 1);
             Serial.printf("Resetting board to mode=%d...\n",m);
             config.hid_mode = m;
-            config_flash_store.write(config);
+            EEPROM.put(0, config);
+            EEPROM.commit();
             drain_serial();
             delay(1000);
             TinyUSBDevice.detach();
@@ -191,6 +175,7 @@ void loop()
             int len = Serial.parseInt();
             if( len==0 ) {
                 Serial.println("Invalid report length specified");
+                return;
             }
             //Serial.printf("cmd: %c len:%d\n", cmd,len);
             

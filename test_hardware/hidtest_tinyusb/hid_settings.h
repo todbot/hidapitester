@@ -77,5 +77,12 @@ const HIDSetting settings[] =
  setting_blink1,
 };
 
+enum {
+    HID_MODE_INOUT_NOID_32 = 0,
+    HID_MODE_INOUT_ID_32,
+    HID_MODE_TEENSY,
+    HID_MODE_BLINK1,
+    HID_MODE_COUNT
+};
 
 #endif
