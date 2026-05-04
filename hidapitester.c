@@ -108,6 +108,7 @@ bool msg_verbose = false;
 
 int print_base = 16; // 16 or 10, hex or decimal
 int print_width = 32; // how many characters per line
+
 /**
  * printf that can be shut up
  */
@@ -169,6 +170,18 @@ int str2buf(void* buffer, char* delim_str, char* string, int buflen, int bufelem
     }
     return pos;
 }
+
+const char* bus_type_name(hid_bus_type t) {
+    switch(t) { 
+    case HID_API_BUS_UNKNOWN:    return "unknown";
+    case HID_API_BUS_USB:        return "USB";
+    case HID_API_BUS_BLUETOOTH:  return "Bluetooth";
+    case HID_API_BUS_I2C:        return "I2C";
+    case HID_API_BUS_SPI:        return "SPI";
+    }
+    return "invalid";
+};
+
 
 /**
  *
@@ -310,6 +323,8 @@ int main(int argc, char* argv[])
                             printf("  usage:         0x%04hX\n", cur_dev->usage );
                             printf("  serial_number: %ls \n", cur_dev->serial_number);
                             printf("  interface:     %d \n", cur_dev->interface_number);
+                            printf("  bus_type:      %s (%d) \n",
+                                   bus_type_name(cur_dev->bus_type), cur_dev->bus_type);
                             printf("  path: %s\n",cur_dev->path);
                             printf("\n");
                         }
