@@ -14,12 +14,21 @@
  * - Set DEFAULT_HID_MODE below to choose the starting mode
  *
  * Serial commands (115200 baud):
- *    ?/h  - print help
- *    c    - show current config and available modes
- *    m N  - switch to mode N (saves to flash, resets device)
- *    e N  - set echo mode on (1) or off (0)
+ *    ?/h        - print help
+ *    c          - show current config and available modes
+ *    m N        - switch to mode N (saves to flash, resets device)
+ *    e N        - set echo mode on (1) or off (0)
  *    i len byte [byte ...]  - send INPUT report to host
  *    f len byte [byte ...]  - send FEATURE report to host
+ *
+ *  For i/f: len = 1 (report ID byte) + number of data bytes.
+ *  First byte is the report ID; use 0 if the descriptor has no report IDs.
+ *  Any unspecified trailing bytes are sent as 0x00.
+ *
+ *  Examples:
+ *    i 33 0 0x11 0x22 0x33 0x44   - INPUT,   no reportId,  32 data bytes, first 4 = 11 22 33 44
+ *    i 33 1 0x11 0x22 0x33 0x44   - INPUT,   reportId=1,   32 data bytes, first 4 = 11 22 33 44
+ *    f 9  1 0x11 0x22 0x33 0x44   - FEATURE, reportId=1,    8 data bytes, first 4 = 11 22 33 44
  *
  * Modes (see hid_settings.h):
  *    0  27B8:EE32  IN/OUT 32 bytes, no report ID
