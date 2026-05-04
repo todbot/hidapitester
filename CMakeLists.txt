@@ -2,24 +2,17 @@ cmake_minimum_required(VERSION 3.15)
 
 project(hidapitester LANGUAGES C)
 
-# Get version from git tag
+# Get version from most recent git tag, fall back to date stamp
 execute_process(
-    COMMAND git tag
+    COMMAND git describe --tags --abbrev=0
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
-    OUTPUT_VARIABLE GIT_TAGS
+    OUTPUT_VARIABLE HIDAPITESTER_VERSION
     ERROR_QUIET
+    OUTPUT_STRIP_TRAILING_WHITESPACE
 )
-
-if(GIT_TAGS)
-    string(REGEX MATCH "v[0-9]+\\..*" HIDAPITESTER_VERSION "${GIT_TAGS}")
-    string(STRIP "${HIDAPITESTER_VERSION}" HIDAPITESTER_VERSION)
-    if(NOT HIDAPITESTER_VERSION)
-        set(HIDAPITESTER_VERSION "v0.0")
-    endif()
-else()
-    set(HIDAPITESTER_VERSION "v0.0")
+if(NOT HIDAPITESTER_VERSION MATCHES "^v")
+    string(TIMESTAMP HIDAPITESTER_VERSION "v%Y%m%d")
 endif()
-
 message(STATUS "hidapitester version: ${HIDAPITESTER_VERSION}")
 
 include(FetchContent)
