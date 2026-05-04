@@ -44,9 +44,10 @@ static void print_usage(char *myname)
 "  --send-feature <datalist>   Send Feature report (1st byte reportId, if used)\n"
 "  --read-feature <reportId>   Read Feature report (w/ reportId, 0 if unused) \n"
 "  --send-output <datalist>    Send Ouput report to device \n"
-"  --read-input                Read Input reports \n"
+"  --read-input                Read Input reports, blocks for timeout_millis \n"
 "  --read-input-forever        Read Input reports in a loop forever \n"
 "  --read-input-report <reportId>  Read Input report from specific reportId \n"
+"  --read-input-report-forever <rId>  Read Input report from specific reportId in a loop\n"
 "  --length <len>, -l <len>    Set buffer length in bytes of report to send/read\n"
 "  --timeout <msecs>           Timeout in millisecs to wait for input reads \n"
 "  --base <base>, -b <base>    Set decimal or hex buffer print mode\n"
@@ -101,6 +102,8 @@ enum {
     CMD_READ_FEATURE,
     CMD_READ_INPUT_FOREVER,
     CMD_READ_INPUT_REPORT,
+    CMD_READ_INPUT_REPORT_FOREVER,
+    CMD_NUM_COMMANDS,
 };
 
 bool msg_quiet = false;
@@ -108,6 +111,14 @@ bool msg_verbose = false;
 
 int print_base = 16; // 16 or 10, hex or decimal
 int print_width = 32; // how many characters per line
+
+#ifdef _WIN32
+#include <windows.h>
+#define sleep_ms(ms) Sleep(ms)
+#else
+#include <unistd.h>
+#define sleep_ms(ms) usleep((ms) * 1000)
+#endif
 
 /**
  * printf that can be shut up
@@ -158,7 +169,7 @@ int str2buf(void* buffer, char* delim_str, char* string, int buflen, int bufelem
     char    *s;
     int     pos = 0;
     if( string==NULL ) return -1;
-    memset(buffer,0,buflen);  // bzero() not defined on Win32?
+    memset(buffer, 0, buflen);  // bzero() not defined on Win32?
     while((s = strtok(string, delim_str)) != NULL && pos < buflen){
         string = NULL;
         switch(bufelem_size) {
@@ -243,6 +254,7 @@ int main(int argc, char* argv[])
          {"read-input-report", required_argument, &cmd,  CMD_READ_INPUT_REPORT},
          {"read-feature", required_argument, &cmd,   CMD_READ_FEATURE},
          {"read-input-forever",  optional_argument, &cmd,   CMD_READ_INPUT_FOREVER},
+         {"read-input-report-forever",  required_argument, &cmd,   CMD_READ_INPUT_REPORT_FOREVER},
          {"get-report-descriptor", no_argument, &cmd, CMD_GET_REPORT_DESCRIPTOR},
          {NULL,0,0,0}
         };
@@ -409,9 +421,9 @@ int main(int argc, char* argv[])
                 if( !dev ) {
                     msg("Error on send: no device opened.\n"); break;
                 }
-                printf("Report Descriptor:\n");
-                int descriptorLen = hid_get_report_descriptor(dev, descriptorBuf, HID_API_MAX_REPORT_DESCRIPTOR_SIZE
-                );
+                msg("Report Descriptor:\n");
+                int descriptorLen = hid_get_report_descriptor(dev, descriptorBuf,
+                                                              HID_API_MAX_REPORT_DESCRIPTOR_SIZE);
                 printbuf(descriptorBuf, descriptorLen, print_base, print_width);
             }
             else if( cmd == CMD_SEND_OUTPUT  ||
@@ -466,7 +478,8 @@ int main(int argc, char* argv[])
                     }
                 } while( cmd == CMD_READ_INPUT_FOREVER );
             }
-            else if( cmd == CMD_READ_INPUT_REPORT ) {
+            else if( cmd == CMD_READ_INPUT_REPORT ||
+                     cmd == CMD_READ_INPUT_REPORT_FOREVER ) {
                 if( !dev ) {
                     msg("Error on read: no device opened.\n"); break;
                 }
@@ -475,16 +488,21 @@ int main(int argc, char* argv[])
                     break;
                 }
                 uint8_t report_id = (optarg) ? strtol(optarg,NULL,0) : 0;
-                buf[0] = report_id;
-                msg("Reading %d-byte input report using hid_get_input_report, report_id %d...",
-                    buflen, report_id);
-                res = hid_get_input_report(dev, buf, buflen);
-                if( res < 0 ) {
-                    msg("error: %ls\n", hid_error(dev));
-                } else { 
-                    msg("read %d bytes:\n",res);
-                }
-                printbuf(buf, buflen, print_base, print_width);
+                do {
+                    memset(buf, 0, MAX_BUF);
+                    buf[0] = report_id;
+                    msg("Reading %d-byte input report using hid_get_input_report, report_id %d...",
+                        buflen, report_id);
+                    res = hid_get_input_report(dev, buf, buflen);
+                    if( res < 0 ) {
+                        msg("error: %ls\n", hid_error(dev));
+                    } else { 
+                        msg("read %d bytes:\n",res);
+                        printbuf(buf, buflen, print_base, print_width);
+                    }
+                    // since input report is non-blocking, use timeout_millis
+                    sleep_ms(timeout_millis);
+                } while( cmd == CMD_READ_INPUT_REPORT_FOREVER );
             }
             else if( cmd == CMD_READ_FEATURE ) {
 
@@ -496,6 +514,7 @@ int main(int argc, char* argv[])
                     break;
                 }
                 uint8_t report_id = (optarg) ? strtol(optarg,NULL,0) : 0;
+                memset(buf, 0, MAX_BUF);
                 buf[0] = report_id;
                 msg("Reading %d-byte feature report, report_id %d...",buflen, report_id);
                 res = hid_get_feature_report(dev, buf, buflen);
@@ -503,8 +522,8 @@ int main(int argc, char* argv[])
                     msg("error: %ls\n", hid_error(dev));
                 } else { 
                     msg("read %d bytes:\n",res);
+                    printbuf(buf, buflen, print_base, print_width);
                 }
-                printbuf(buf, buflen, print_base, print_width);
             }
             else if( cmd == CMD_VERSION ) {
                 printf("hidapitester version: %s\n", HIDAPITESTER_VERSION);
