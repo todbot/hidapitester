@@ -1,6 +1,6 @@
 /**
  * hidtest_tinyusb.ino
- * - Arduino sketch for TinyUSB-compatible SAMD21/51, RP2040, and ESP32-S2/S3
+ * - Arduino sketch for TinyUSB-compatible RP2040, ESP32-S2/S3, and SAMD51/21
  *   devices that creates a configurable USB HID device for testing hidapitester.
  *   Supports IN/OUT/FEATURE reports with or without Report IDs.
  *
@@ -46,47 +46,31 @@
 #include <EEPROM.h>
 
 #include "hid_settings.h"
-#include "board_config.h"
+#include "board_setup.h"
+
+#define DEFAULT_HID_MODE HID_MODE_INOUT_NOID_32  // change to set the mode used on first boot
+#include "config.h"
+
+StartupConfig config;
 
 Adafruit_USBD_HID usb_hid;
                           
 uint32_t statusMillisNext;
 bool echoReports = false;
 
-#define DEFAULT_HID_MODE HID_MODE_INOUT_NOID_32  // change to set the mode used on first boot
-
-typedef struct {
-  boolean valid;
-  int hid_mode;
-} StartupConfig;
-
-StartupConfig config;
-
-// load the saved config from flash
-int load_config() {
-  EEPROM.begin(sizeof(StartupConfig));
-  EEPROM.get(0, config);
-  if ( !config.valid ) {   // for first run, "valid" will be "false"...
-      config.hid_mode = DEFAULT_HID_MODE;
-      config.valid = true;
-      return -1;  // had to fix the config
-  }
-  return 0; // load was okay
-}
 
 // the setup function runs once when you press reset or power the board
 void setup()
 {
-    Serial.begin(115200);
-    Serial.setTimeout(500);  // for serial.readString()
-    
     load_config();
-    
     HIDSetting setting = settings[ config.hid_mode ];
-    
+
     TinyUSBDevice.setID( setting.vid, setting.pid );
     TinyUSBDevice.setManufacturerDescriptor( setting.manufacturer_str );
     TinyUSBDevice.setProductDescriptor( setting.product_str );
+
+    board_leds_begin();
+    board_leds_blink(5, 100);
 
     usb_hid.enableOutEndpoint(true);
     usb_hid.setPollInterval(2);
@@ -94,13 +78,17 @@ void setup()
     usb_hid.setReportCallback(get_report_callback, set_report_callback);
     usb_hid.begin();
 
-    // wait until device mounted
-    while( !TinyUSBDevice.mounted() ) delay(1);
-
-    board_leds_begin();
+    Serial.begin(115200);
+    Serial.setTimeout(500);  // for serial.readString()
+    
+    // If already enumerated, additional class driver begin() e.g msc, hid, midi won't take effect until re-enumeration
+    if (TinyUSBDevice.mounted()) {
+        TinyUSBDevice.detach();
+        delay(10);
+        TinyUSBDevice.attach();
+     }
 
     delay(2000);
-
     Serial.println("hidtest_tinyusb");
     Serial.println("---------------");
     print_config();
@@ -116,38 +104,47 @@ void print_config()
     Serial.printf("Current HID report descriptor: len=%d\n", setting.desc_size);
     print_buff(setting.desc_hid_report, setting.desc_size, "  ");
     Serial.println();
+    
     Serial.println("Available modes:");
     for( uint8_t i=0; i < HID_MODE_COUNT; i++ ) {
         HIDSetting s = settings[i];
         Serial.printf("  Mode:%d ", i);
         Serial.printf("  ('%s')\n", s.info);
         Serial.printf("    vid/pid/mfg/prod:");
-        Serial.printf(" %04X/%04X:", s.vid,s.pid);
-        Serial.printf(" %s - %s\n", s.manufacturer_str, s.product_str);
+        Serial.printf(" %04X / %04X", s.vid,s.pid);
+        Serial.printf(" / %s / %s\n", s.manufacturer_str, s.product_str);
     }
     Serial.println();
+    
 }
 
 void print_help()
 {
     HIDSetting setting = settings[config.hid_mode];
-    Serial.print("Available commands:\n"
-                 "  - i   - send INPUT report to host\n"
-                 "  - f   - send FEATURE report to host\n"
-                 "  - e   - Turn report echo on/off\n"
-                 "  - m   - Select device mode (causes device reset)\n"
-                 "  - c   - Show current device config and available modes\n"
-                 "  - ?   - Print this help\n");
-    Serial.printf("hidtest_tinyusb: hid_mode:%d ",config.hid_mode);
+    Serial.printf("hidtest_tinyusb: hid_mode=%d ",config.hid_mode);
     Serial.printf(" vidpid=%04X:%04X\n", setting.vid, setting.pid);
+    Serial.print("  commands:\n"
+                 "   - i <len rId d1 d2 d3...>  - send INPUT report to host\n"
+                 "   - f <len rId d1 d2 d3...>  - send FEATURE report to host\n"
+                 "   - e <n>  - Turn report echo on(n=1)/off(n=0)\n"
+                 "   - m <n>   - Select device mode to 0,1,2,3 (causes device reset)\n"
+                 "   - c       - Show current device config and available modes\n"
+                 "   - ?       - Print this help\n");
 }
 
 void loop()
 {
-    //HIDSetting setting = settings[config.hid_mode];
-    if( statusMillisNext - millis() > 10000 ) {
-        statusMillisNext = millis() + 10000;
+    #ifdef TINYUSB_NEED_POLLING_TASK
+    TinyUSBDevice.task(); // Manual call tud_task if not called by Core background
+    #endif
+
+    HIDSetting setting = settings[config.hid_mode];
+
+    if( statusMillisNext - millis() > 15000 ) {
+        statusMillisNext = millis() + 15000;
         board_leds_set(0xff00ff);
+        Serial.printf("hidtest_tinyusb: hid_mode=%d ",config.hid_mode);
+        Serial.printf(" vidpid=%04X:%04X\n", setting.vid, setting.pid);
         Serial.println("('?' for help)>");
     }
     
@@ -167,11 +164,10 @@ void loop()
             m = constrain(m, 0, HID_MODE_COUNT - 1);
             Serial.printf("Resetting board to mode=%d...\n",m);
             config.hid_mode = m;
-            EEPROM.put(0, config);
-            EEPROM.commit();
+            save_config();
             drain_serial();
-            delay(1000);
             TinyUSBDevice.detach();
+            delay(1000);
             Watchdog.enable(1000); // resets after 2000msec
         }
         else if( cmd == 'e' ) {                  // echo on/off
@@ -276,15 +272,19 @@ void drain_serial() { while( Serial.read() != -1 )  { } }
 // print out a byte buffer as hex to Serial
 void print_buff(const uint8_t* buf, int buflen, const char* line_start)
 {
-    int width = 16;
+    const int width = 16;
+    char line[width * 3 + 1];  // "XX " per byte + null
+    int pos = 0;
+
     Serial.print(line_start);
-    for( int i=0; i<buflen; i++ ) {
-        Serial.printf("%02X ", buf[i]);
-        if (i % width == width-1 && i < buflen-1) {
-            Serial.println(); Serial.print(line_start);
+    for (int i = 0; i < buflen; i++) {
+        pos += snprintf(line + pos, 4, "%02X ", buf[i]);
+        if (i % width == width - 1 || i == buflen - 1) {
+            Serial.println(line);
+            pos = 0;
+            if (i < buflen - 1) Serial.print(line_start);
         }
     }
-    Serial.println();
 }
 
 // parse a comma-delimited 'string' containing numbers (dec,hex)

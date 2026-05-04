@@ -1,5 +1,5 @@
-#ifndef TOD_HID_SETTINGS_H
-#define TOD_HID_SETTINGS_H
+#ifndef HIDTEST_TINYUSB_SETTINGS_H
+#define HIDTEST_TINYUSB_SETTINGS_H
 
 #include "descriptors.h"
 
