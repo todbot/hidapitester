@@ -171,6 +171,9 @@ int str2buf(void* buffer, char* delim_str, char* string, int buflen, int bufelem
     return pos;
 }
 
+/**
+ * Map hidapi bus_type to a string
+ */
 const char* bus_type_name(hid_bus_type t) {
     switch(t) { 
     case HID_API_BUS_UNKNOWN:    return "unknown";
@@ -432,8 +435,12 @@ int main(int argc, char* argv[])
                     msg("Writing %d-byte feature report...",buflen);
                     res = hid_send_feature_report(dev, buf, buflen);
                 }
-                msg("wrote %d bytes:\n", res);
-                if(!msg_quiet) { printbuf(buf,buflen, print_base, print_width); }
+                if( res < 0 ) {
+                    msg("error: %ls\n", hid_error(dev));
+                } else { 
+                    msg("wrote %d bytes:\n", res);
+                }
+                if(!msg_quiet) { printbuf(buf, buflen, print_base, print_width); }
             }
             else if( cmd == CMD_READ_INPUT ||
                      cmd == CMD_READ_INPUT_FOREVER ) {
@@ -449,13 +456,13 @@ int main(int argc, char* argv[])
                       buflen, timeout_millis);
                     res = hid_read_timeout(dev, buf, buflen, timeout_millis);
                     msg("read %d bytes:\n", res);
-                    if( res > 0 ) {
-                        printbuf(buf,buflen, print_base, print_width);
-                        memset(buf,0,buflen);  // clear it out
-                    }
-                    else if( res == -1 )  { // removed device
+                    if( res < 0 ) {  // error or removed device
+                        msg("error: %ls\n", hid_error(dev));
                         cmd = CMD_CLOSE;
                         break;
+                    } else { 
+                        printbuf(buf,buflen, print_base, print_width);
+                        memset(buf,0,buflen);  // clear it out
                     }
                 } while( cmd == CMD_READ_INPUT_FOREVER );
             }
@@ -472,7 +479,11 @@ int main(int argc, char* argv[])
                 msg("Reading %d-byte input report using hid_get_input_report, report_id %d...",
                     buflen, report_id);
                 res = hid_get_input_report(dev, buf, buflen);
-                msg("read %d bytes:\n",res);
+                if( res < 0 ) {
+                    msg("error: %ls\n", hid_error(dev));
+                } else { 
+                    msg("read %d bytes:\n",res);
+                }
                 printbuf(buf, buflen, print_base, print_width);
             }
             else if( cmd == CMD_READ_FEATURE ) {
@@ -488,7 +499,11 @@ int main(int argc, char* argv[])
                 buf[0] = report_id;
                 msg("Reading %d-byte feature report, report_id %d...",buflen, report_id);
                 res = hid_get_feature_report(dev, buf, buflen);
-                msg("read %d bytes:\n",res);
+                if( res <  0 ){
+                    msg("error: %ls\n", hid_error(dev));
+                } else { 
+                    msg("read %d bytes:\n",res);
+                }
                 printbuf(buf, buflen, print_base, print_width);
             }
             else if( cmd == CMD_VERSION ) {
