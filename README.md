@@ -175,12 +175,12 @@ cross-platform for any device that `Adafruit_TinyUSB_Arduino` supports.
 Currently it primarily targets RP2040 (Raspberry Pi Pico), with ESP32-S2/S3 and
 SAMD51/21 also known to work.
 
-- ["TeensyRawHid"](./test_hardware/TeensyRawHid] is an Arduino sketch for
+- ["TeensyRawHid"](./test_hardware/TeensyRawHid) is an Arduino sketch for
 [Teensy microcontrollers](https://www.pjrc.com/teensy/).
 The sketch sends 64-byte Input reports every second, with no reportId.
 The sketch receives 64-byte Output reports, and prints them to Serial Monitor.
 
-- [ProMicroRawHID"](./test_hardware/ProMicroRawHID]) is an Arduino sketch 
+- [ProMicroRawHID](./test_hardware/ProMicroRawHID) is an Arduino sketch 
 for any board supported by NicoHood's [HID Project](https://github.com/NicoHood/HID)
 This sketch sends a 64-byte Input report every 2 seconds, with no reportId.
 The sketch recives 64-byte Output or Feature reports, and prints them
