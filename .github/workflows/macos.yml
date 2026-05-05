@@ -29,6 +29,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           path: hidapitester
+          fetch-depth: 0
 
       - name: fetch hidapi
         uses: actions/checkout@v6

@@ -29,6 +29,7 @@ jobs:
       - uses: actions/checkout@v6
         with:
           path: hidapitester
+          fetch-depth: 0
 
       - name: setup prerequisites (windows)
         run: echo "C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\bin" | Out-File -FilePath $env:GITHUB_PATH -Encoding utf8 -Append
