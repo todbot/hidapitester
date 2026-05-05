@@ -1,4 +1,4 @@
-name: raspberrypi-armhf
+name: raspberrypi
 
 on: [push, pull_request]
 
