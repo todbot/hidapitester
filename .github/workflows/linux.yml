@@ -35,6 +35,10 @@ jobs:
         shell: bash
         run: HIDAPI_DIR=./hidapi make
 
+      - name: package hidapitester (Makefile)
+        shell: bash
+        run: make package
+
       - name: run hidapitester (Makefile)
         shell: bash
         run: |
@@ -58,8 +62,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: hidapitester-linux
-          path: |
-            build/hidapitester
+          path: hidapitester-*.zip
           retention-days: 2
 
       - name: Upload hidapitester artifacts (main)
@@ -67,5 +70,4 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: hidapitester-linux
-          path: |
-            build/hidapitester
+          path: hidapitester-*.zip
