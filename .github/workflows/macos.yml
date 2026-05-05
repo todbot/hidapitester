@@ -63,7 +63,7 @@ jobs:
           xcrun notarytool submit hidapitester-*.zip \
             --apple-id "${{ secrets.APPLE_ID }}" \
             --team-id "${{ secrets.APPLE_TEAM_ID }}" \
-            --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" \
+            --password "${{ secrets.APPLE_APP_SPECIFIC_PWD }}" \
             --wait
 
       - name: run hidapitester (Makefile)
