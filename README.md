@@ -47,6 +47,7 @@ Those commands are:
   --vidpid <vid/pid>          Filter by vendorId/productId (comma/slash delim)
   --usagePage <number>        Filter by usagePage
   --usage <number>            Filter by usage
+  --serial <string>           Filter by serial number
   --list                      List HID devices (by filters)
   --list-usages               List HID devices w/ usages (by filters)
   --list-detail               List HID devices w/ details (by filters)
@@ -57,16 +58,18 @@ Those commands are:
   --send-feature <datalist>   Send Feature report (1st byte reportId, if used)
   --read-feature <reportId>   Read Feature report (w/ reportId, 0 if unused)
   --send-output <datalist>    Send Ouput report to device
-  --read-input                Read Input reports
+  --read-input                Read Input reports, blocks for timeout_millis
   --read-input-forever        Read Input reports in a loop forever
   --read-input-report <reportId>  Read Input report from specific reportId
+  --read-input-report-forever <rId>  Read Input report from specific reportId in a loop
   --length <len>, -l <len>    Set buffer length in bytes of report to send/read
   --timeout <msecs>           Timeout in millisecs to wait for input reads
   --base <base>, -b <base>    Set decimal or hex buffer print mode
-  --width <width>, -w <width> Set number of bytes to print per line
+  --width <width> -w <width>  Set number of bytes to print per line
   --quiet, -q                 Print out nothing except when reading data
   --verbose, -v               Print out extra information
-```
+  --version                   Print out hidapitester and hidapi version
+ ```
 
 ### Listing Devices
 
@@ -167,24 +170,30 @@ Closing device
 
 ### Test Hardware
 
-- The "TeensyRawHid" directory contains an Arduino sketch for
+- ["hidtest_tinyusb"](./test_hardware/hidtest_tinyusb/) is an Arduino sketch that's
+cross-platform for any device that `Adafruit_TinyUSB_Arduino` supports. 
+Currently it primarily targets RP2040 (Raspberry Pi Pico), with ESP32-S2/S3 and
+SAMD51/21 also known to work.
+
+- ["TeensyRawHid"](./test_hardware/TeensyRawHid] is an Arduino sketch for
 [Teensy microcontrollers](https://www.pjrc.com/teensy/).
 The sketch sends 64-byte Input reports every second, with no reportId.
 The sketch receives 64-byte Output reports, and prints them to Serial Monitor.
 
-- The "ProMicroRawHID" directory contains an Arduino sketch for any microcontroller
-board supported by NicoHood's [HID Project](https://github.com/NicoHood/HID)
+- [ProMicroRawHID"](./test_hardware/ProMicroRawHID]) is an Arduino sketch 
+for any board supported by NicoHood's [HID Project](https://github.com/NicoHood/HID)
 This sketch sends a 64-byte Input report every 2 seconds, with no reportId.
 The sketch recives 64-byte Output or Feature reports, and prints them
 to Serial Monitor
 
+
 ## Compiling
 
-Building `hidapitester` is done via a very simple Makefile.
+Building `hidapitester` is done via a simple Makefile.
 
-There is also a CMakeLists.txt if you prefer CMake. 
+There is also a CMakeLists.txt if you prefer CMake. (see below) 
 
-Building with the simple Makefile:
+Build with Makefile:
 
 ```text
 git clone https://github.com/libusb/hidapi
@@ -205,7 +214,9 @@ HIDAPI_DIR=../hidapi-libusb-test make
 ./hidapitester --list
 ```
 
-To build with CMake:
+Build with CMake:
+
+(The cmake build process will fetch hidapi main branch from github)
 
 ```text
 mkdir build
