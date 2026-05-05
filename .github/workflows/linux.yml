@@ -69,16 +69,7 @@ jobs:
           ./build/hidapitester --version && output=$(./build/hidapitester --list 2>&1) || [[ "$output" == *"No HID devices found"* ]]
         # (we need the grep guard because Linux runners no longer return any devices)
 
-      - name: Upload hidapitester artifacts (PR)
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v7
-        with:
-          name: hidapitester-linux
-          path: hidapitester/hidapitester-*.zip
-          retention-days: 2
-
-      - name: Upload hidapitester artifacts (main)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Upload hidapitester artifacts
         uses: actions/upload-artifact@v7
         with:
           name: hidapitester-linux

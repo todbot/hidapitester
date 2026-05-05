@@ -65,16 +65,7 @@ jobs:
       - name: Run hidapitester (CMake)
         run: build\Release\hidapitester.exe --version && build\Release\hidapitester.exe --list
 
-      - name: Upload hidapitester artifacts (PR)
-        if: github.event_name == 'pull_request'
-        uses: actions/upload-artifact@v7
-        with:
-          name: hidapitester-windows
-          path: hidapitester/hidapitester-*.zip
-          retention-days: 2
-
-      - name: Upload hidapitester artifacts (main)
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      - name: Upload hidapitester artifacts
         uses: actions/upload-artifact@v7
         with:
           name: hidapitester-windows
