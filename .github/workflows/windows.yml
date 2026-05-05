@@ -35,8 +35,8 @@ jobs:
         run: HIDAPI_DIR=./hidapi make
 
       - name: package hidapitester (Makefile)
-        shell: bash
-        run: make package
+        shell: pwsh
+        run: Compress-Archive -Path hidapitester.exe -DestinationPath "hidapitester-windows-x86_64.zip"
 
       - name: run hidapitester (Makefile)
         shell: bash

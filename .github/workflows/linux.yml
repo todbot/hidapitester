@@ -37,7 +37,7 @@ jobs:
 
       - name: package hidapitester (Makefile)
         shell: bash
-        run: make package
+        run: HIDAPI_DIR=./hidapi make package
 
       - name: run hidapitester (Makefile)
         shell: bash
