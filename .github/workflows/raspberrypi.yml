@@ -17,13 +17,14 @@ jobs:
         with:
           base_image: raspios_lite:latest
           cpu: cortex-a7
-          copy_artifact_path: hidapitester/hidapitester-linux-aarch64.zip
+          copy_artifact_path: hidapitester-linux-aarch64.zip
           commands: |
             apt-get update
             apt-get install -y libudev-dev pkg-config build-essential
             cd hidapitester
             make
             make package
+            cp *zip ..
       - uses: actions/upload-artifact@v4
         with:
           name: hidapitester-raspberrypi
