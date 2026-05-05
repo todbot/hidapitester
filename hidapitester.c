@@ -192,6 +192,9 @@ const char* bus_type_name(hid_bus_type t) {
     case HID_API_BUS_BLUETOOTH:  return "Bluetooth";
     case HID_API_BUS_I2C:        return "I2C";
     case HID_API_BUS_SPI:        return "SPI";
+#if HID_API_VERSION >= HID_API_MAKE_VERSION(0, 16, 0)
+    case HID_API_BUS_VIRTUAL:    return "Virtual";
+#endif
     }
     return "invalid";
 };
