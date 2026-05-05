@@ -10,6 +10,7 @@ on:
     tags: [ 'v*', '[0-9]*' ]
   pull_request:
     branches: [ main ]
+  workflow_dispatch:
 
 env:
   HIDAPI_VERSION: "0.15.0"
