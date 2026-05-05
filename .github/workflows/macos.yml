@@ -51,7 +51,9 @@ jobs:
 
       - name: sign hidapitester
         if: github.event_name != 'pull_request'
-        run: codesign --force --options runtime --timestamp --sign "${{ secrets.MACOS_SIGNING_IDENTITY }}" hidapitester
+        run: |
+          security find-identity -v -p codesigning
+          codesign --force --options runtime --timestamp --sign "${{ secrets.MACOS_SIGNING_IDENTITY }}" hidapitester
 
       - name: package hidapitester (Makefile)
         shell: bash
