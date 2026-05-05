@@ -42,9 +42,29 @@ jobs:
         shell: bash
         run: make
 
+      - name: import signing certificate
+        if: github.event_name != 'pull_request'
+        uses: Apple-Actions/import-codesign-certs@v3
+        with:
+          p12-file-base64: ${{ secrets.MACOS_CERTIFICATE }}
+          p12-password: ${{ secrets.MACOS_CERTIFICATE_PWD }}
+
+      - name: sign hidapitester
+        if: github.event_name != 'pull_request'
+        run: codesign --force --options runtime --timestamp --sign "${{ secrets.MACOS_SIGNING_IDENTITY }}" hidapitester
+
       - name: package hidapitester (Makefile)
         shell: bash
         run: make package
+
+      - name: notarize hidapitester
+        if: github.event_name != 'pull_request'
+        run: |
+          xcrun notarytool submit hidapitester-*.zip \
+            --apple-id "${{ secrets.APPLE_ID }}" \
+            --team-id "${{ secrets.APPLE_TEAM_ID }}" \
+            --password "${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}" \
+            --wait
 
       - name: run hidapitester (Makefile)
         shell: bash
