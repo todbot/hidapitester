@@ -10,34 +10,43 @@ on:
   pull_request:
     branches: [ main ]
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+env:
+  HIDAPI_VERSION: "0.15.0"
+
 jobs:
   # This workflow contains a single job called "build"
   build:
-    runs-on:  ubuntu-latest
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: hidapitester
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v6
+        with:
+          path: hidapitester
 
       - name: setup prerequisites (linux)
         shell: bash
         run: sudo apt install pkg-config libudev-dev libusb-1.0-0-dev
+        working-directory: ${{ github.workspace }}
 
       - name: fetch hidapi
         uses: actions/checkout@v6
         with:
           repository: libusb/hidapi
+          ref: hidapi-${{ env.HIDAPI_VERSION }}
           path: hidapi
 
       - name: compile hidapitester Makefile
         shell: bash
-        run: HIDAPI_DIR=./hidapi make
+        run: make
 
       - name: package hidapitester (Makefile)
         shell: bash
-        run: HIDAPI_DIR=./hidapi make package
+        run: make package
 
       - name: run hidapitester (Makefile)
         shell: bash
@@ -62,7 +71,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: hidapitester-linux
-          path: hidapitester-*.zip
+          path: hidapitester/hidapitester-*.zip
           retention-days: 2
 
       - name: Upload hidapitester artifacts (main)
@@ -70,4 +79,4 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: hidapitester-linux
-          path: hidapitester-*.zip
+          path: hidapitester/hidapitester-*.zip

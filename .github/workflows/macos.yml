@@ -10,37 +10,38 @@ on:
   pull_request:
     branches: [ main ]
 
-# A workflow run is made up of one or more jobs that can run sequentially or in parallel
+env:
+  HIDAPI_VERSION: "0.15.0"
+
 jobs:
   # This workflow contains a single job called "build"
   build:
     runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: hidapitester
 
     # Steps represent a sequence of tasks that will be executed as part of the job
     steps:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v6
-
-      # xcode 12.5 does not have Arm support?
-      #- name: update to xcode w/ arm
-      #  shell: bash
-      #  run: |
-      #    sudo rm -Rf /Library/Developer/CommandLineTools/SDKs/*
-      #    sudo xcode-select -s "/Applications/Xcode_12.5.app"
+        with:
+          path: hidapitester
 
       - name: fetch hidapi
         uses: actions/checkout@v6
         with:
           repository: libusb/hidapi
+          ref: hidapi-${{ env.HIDAPI_VERSION }}
           path: hidapi
 
       - name: compile hidapitester Makefile
         shell: bash
-        run: HIDAPI_DIR=./hidapi make
+        run: make
 
       - name: package hidapitester (Makefile)
         shell: bash
-        run: HIDAPI_DIR=./hidapi make package
+        run: make package
 
       - name: run hidapitester (Makefile)
         shell: bash
@@ -62,7 +63,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: hidapitester-macos
-          path: hidapitester-*.zip
+          path: hidapitester/hidapitester-*.zip
           retention-days: 2
 
       - name: Upload hidapitester artifacts (main)
@@ -70,4 +71,4 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: hidapitester-macos
-          path: hidapitester-*.zip
+          path: hidapitester/hidapitester-*.zip
