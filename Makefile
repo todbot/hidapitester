@@ -12,6 +12,7 @@ ARCH := $(shell uname -m)
 
 ifeq "$(UNAME)" "Darwin"
 	OS=macos
+	ARCH=universal
 endif
 ifeq "$(OS)" "Windows_NT"
 	OS=windows
