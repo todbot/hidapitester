@@ -1,0 +1,29 @@
+name: raspberrypi-armhf
+
+on: [push, pull_request]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: hidapitester
+      - uses: actions/checkout@v4
+        with:
+          repository: libusb/hidapi
+          path: hidapi
+      - uses: pguyot/arm-runner-action@v2
+        with:
+          base_image: raspios_lite:latest
+          cpu: cortex-a7
+          commands: |
+            apt-get update
+            apt-get install -y libudev-dev pkg-config build-essential
+            cd hidapitester
+            make
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hidapitester-raspberrypi-armhf
+          path: hidapitester/hidapitester
+
