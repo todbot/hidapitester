@@ -17,6 +17,7 @@ jobs:
         with:
           base_image: raspios_lite:latest
           cpu: cortex-a7
+          copy_artifact_path: hidapitester/hidapitester
           commands: |
             apt-get update
             apt-get install -y libudev-dev pkg-config build-essential
