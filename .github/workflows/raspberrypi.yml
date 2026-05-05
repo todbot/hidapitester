@@ -15,8 +15,10 @@ jobs:
           path: hidapi
       - uses: pguyot/arm-runner-action@v2
         with:
-          base_image: raspios_lite:latest
-          cpu: cortex-a7
+          base_image: raspios_lite_arm64:latest
+          cpu: cortex-a53
+          #base_image: raspios_lite:latest
+          #cpu: cortex-a7
           copy_artifact_path: artifacts
           commands: |
             apt-get update
