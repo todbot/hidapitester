@@ -404,7 +404,8 @@ int main(int argc, char* argv[])
                         printf("      \"product_string\": ");      json_print_wstr(cur_dev->product_string);      printf(",\n");
                         printf("      \"serial_number\": ");       json_print_wstr(cur_dev->serial_number);       printf(",\n");
                         printf("      \"interface_number\": %d,\n", cur_dev->interface_number);
-                        printf("      \"bus_type\": \"%s\",\n", bus_type_name(cur_dev->bus_type));
+                        printf("      \"bus_type\": \"%d\",\n", cur_dev->bus_type);
+                        printf("      \"bus_type_name\": \"%s\",\n", bus_type_name(cur_dev->bus_type));
                         printf("      \"path\": "); json_print_str(cur_dev->path); printf("\n");
                         printf("    }");
                     }
