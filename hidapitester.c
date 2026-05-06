@@ -380,10 +380,13 @@ int main(int argc, char* argv[])
                 devs = hid_enumerate(vid, pid);
                 if (!devs) {
                     fprintf(stderr, "No HID devices found\n");
+                    printf("{\n    \"error\": \"No HID devices found\",\n");
+                    printf("    \"devices\": []\n");
+                    printf("}\n");
                     hid_exit();
                     return 1;
                 }
-                printf("[\n");
+                printf("{\n  \"devices\": [\n");
                 bool first = true;
                 cur_dev = devs;
                 while (cur_dev) {
@@ -392,22 +395,22 @@ int main(int argc, char* argv[])
                         (serial_wstr[0]==L'\0' || wcscmp(cur_dev->serial_number, serial_wstr)==0) ) {
                         if (!first) printf(",\n");
                         first = false;
-                        printf("  {\n");
-                        printf("    \"vendor_id\":           \"0x%04hX\",\n", cur_dev->vendor_id);
-                        printf("    \"product_id\":          \"0x%04hX\",\n", cur_dev->product_id);
-                        printf("    \"usage_page\":          \"0x%04hX\",\n", cur_dev->usage_page);
-                        printf("    \"usage\":               \"0x%04hX\",\n", cur_dev->usage);
-                        printf("    \"manufacturer_string\": "); json_print_wstr(cur_dev->manufacturer_string); printf(",\n");
-                        printf("    \"product_string\":      "); json_print_wstr(cur_dev->product_string);      printf(",\n");
-                        printf("    \"serial_number\":       "); json_print_wstr(cur_dev->serial_number);       printf(",\n");
-                        printf("    \"interface_number\":    %d,\n", cur_dev->interface_number);
-                        printf("    \"bus_type\":            \"%s\",\n", bus_type_name(cur_dev->bus_type));
-                        printf("    \"path\":                "); json_print_str(cur_dev->path); printf("\n");
-                        printf("  }");
+                        printf("    {\n");
+                        printf("      \"vendor_id\": \"0x%04hX\",\n", cur_dev->vendor_id);
+                        printf("      \"product_id\": \"0x%04hX\",\n", cur_dev->product_id);
+                        printf("      \"usage_page\": \"0x%04hX\",\n", cur_dev->usage_page);
+                        printf("      \"usage\": \"0x%04hX\",\n", cur_dev->usage);
+                        printf("      \"manufacturer_string\": "); json_print_wstr(cur_dev->manufacturer_string); printf(",\n");
+                        printf("      \"product_string\": ");      json_print_wstr(cur_dev->product_string);      printf(",\n");
+                        printf("      \"serial_number\": ");       json_print_wstr(cur_dev->serial_number);       printf(",\n");
+                        printf("      \"interface_number\": %d,\n", cur_dev->interface_number);
+                        printf("      \"bus_type\": \"%s\",\n", bus_type_name(cur_dev->bus_type));
+                        printf("      \"path\": "); json_print_str(cur_dev->path); printf("\n");
+                        printf("    }");
                     }
                     cur_dev = cur_dev->next;
                 }
-                printf("\n]\n");
+                printf("\n  ]\n}\n");
                 hid_free_enumeration(devs);
             }
             else if( cmd == CMD_OPEN ) {
