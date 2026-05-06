@@ -80,13 +80,16 @@ including usagePage, usage, path, and more
 * Use `--vidpid`, `--usagePage`, or `--usage` to filter the output
 
 * The `--vidpid` commmand allows full or partial specification of the
-Vendor Id and Product Id.  These are all valid:
+Vendor Id and Product Id in **hexadecimal**.
+
+These are all valid:
 
 ```text
   --vidpid 16C0:FFAB  # specify both vid 0x16C0 and pid 0xFFAB
   --vidpid 16C0       # just specify the vid
   --vidpid 0:FFAB     # just specify the pid
   --vidpid 16C0:FFAB  # use colon instead of slash
+  --vidpid 0x16C0:0xFFAB  # as explicitly hexadecimal
 ```
 
 ### Opening Devices

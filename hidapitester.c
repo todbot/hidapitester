@@ -276,8 +276,8 @@ int main(int argc, char* argv[])
 
             if( cmd == CMD_VIDPID ) {
 
-                if( sscanf(optarg, "%4hx/%4hx", &vid,&pid) !=2 ) {  // match "23FE/AB12"
-                    if( !sscanf(optarg, "%4hx:%4hx", &vid,&pid) ) { // match "23FE:AB12"
+                if( sscanf(optarg, "%6hx/%6hx", &vid,&pid) !=2 ) {  // match "23FE/AB12" or "0x23FE/0xAB12"
+                    if( !sscanf(optarg, "%6hx:%6hx", &vid,&pid) ) { // match "23FE:AB12" or "0x23FE:0xAB12"
                         // else try parsing standard dec/hex values
                         int wordbuf[4]; // a little extra space
                         int parsedlen = str2buf(wordbuf, ":/, ", optarg, sizeof(wordbuf), 2);
