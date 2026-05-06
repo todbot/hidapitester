@@ -48,7 +48,9 @@
 #include "hid_settings.h"
 #include "board_setup.h"
 
-#define DEFAULT_HID_MODE HID_MODE_INOUT_NOID_32  // change to set the mode used on first boot
+// change to set the mode used on first boot
+// see bottom of hid_settings.h for options
+#define DEFAULT_HID_MODE HID_MODE_INOUT_NOID_32  
 #include "config.h"
 
 StartupConfig config;
