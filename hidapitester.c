@@ -92,6 +92,7 @@ enum {
     CMD_LIST,
     CMD_LIST_USAGES,
     CMD_LIST_DETAIL,
+    CMD_LIST_JSON,
     CMD_OPEN,
     CMD_OPEN_PATH,
     CMD_CLOSE,
@@ -200,6 +201,28 @@ const char* bus_type_name(hid_bus_type t) {
 };
 
 
+static void json_print_str(const char* s) {
+    putchar('"');
+    if (s) {
+        for (; *s; s++) {
+            if      (*s == '"')  printf("\\\"");
+            else if (*s == '\\') printf("\\\\");
+            else if (*s == '\n') printf("\\n");
+            else if (*s == '\r') printf("\\r");
+            else if (*s == '\t') printf("\\t");
+            else if ((unsigned char)*s < 0x20) printf("\\u%04x", (unsigned char)*s);
+            else putchar(*s);
+        }
+    }
+    putchar('"');
+}
+
+static void json_print_wstr(const wchar_t* ws) {
+    char buf[512] = "";
+    if (ws) wcstombs(buf, ws, sizeof(buf) - 1);
+    json_print_str(buf);
+}
+
 /**
  *
  */
@@ -246,6 +269,7 @@ int main(int argc, char* argv[])
          {"list",         no_argument,       &cmd,   CMD_LIST},
          {"list-usages",  no_argument,       &cmd,   CMD_LIST_USAGES},
          {"list-detail",  no_argument,       &cmd,   CMD_LIST_DETAIL},
+         {"list-json",    no_argument,       &cmd,   CMD_LIST_JSON},
          {"open",         no_argument,       &cmd,   CMD_OPEN},
          {"open-path",    required_argument, &cmd,   CMD_OPEN_PATH},
          {"close",        no_argument,       &cmd,   CMD_CLOSE},
@@ -349,6 +373,41 @@ int main(int argc, char* argv[])
                     }
                     cur_dev = cur_dev->next;
                 }
+                hid_free_enumeration(devs);
+            }
+            else if( cmd == CMD_LIST_JSON ) {
+                struct hid_device_info *devs, *cur_dev;
+                devs = hid_enumerate(vid, pid);
+                if (!devs) {
+                    fprintf(stderr, "No HID devices found\n");
+                    hid_exit();
+                    return 1;
+                }
+                printf("[\n");
+                bool first = true;
+                cur_dev = devs;
+                while (cur_dev) {
+                    if( (!usage_page || cur_dev->usage_page == usage_page) &&
+                        (!usage     || cur_dev->usage      == usage)       &&
+                        (serial_wstr[0]==L'\0' || wcscmp(cur_dev->serial_number, serial_wstr)==0) ) {
+                        if (!first) printf(",\n");
+                        first = false;
+                        printf("  {\n");
+                        printf("    \"vendor_id\":           \"0x%04hX\",\n", cur_dev->vendor_id);
+                        printf("    \"product_id\":          \"0x%04hX\",\n", cur_dev->product_id);
+                        printf("    \"usage_page\":          \"0x%04hX\",\n", cur_dev->usage_page);
+                        printf("    \"usage\":               \"0x%04hX\",\n", cur_dev->usage);
+                        printf("    \"manufacturer_string\": "); json_print_wstr(cur_dev->manufacturer_string); printf(",\n");
+                        printf("    \"product_string\":      "); json_print_wstr(cur_dev->product_string);      printf(",\n");
+                        printf("    \"serial_number\":       "); json_print_wstr(cur_dev->serial_number);       printf(",\n");
+                        printf("    \"interface_number\":    %d,\n", cur_dev->interface_number);
+                        printf("    \"bus_type\":            \"%s\",\n", bus_type_name(cur_dev->bus_type));
+                        printf("    \"path\":                "); json_print_str(cur_dev->path); printf("\n");
+                        printf("  }");
+                    }
+                    cur_dev = cur_dev->next;
+                }
+                printf("\n]\n");
                 hid_free_enumeration(devs);
             }
             else if( cmd == CMD_OPEN ) {
