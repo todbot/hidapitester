@@ -38,7 +38,7 @@ void loop() {
     // the computer sent a message. Print it out
     Serial.println(F("Received packet:"));    
     for( int i=0; i<BUFSIZE; i++ ) { 
-        sprintf(strbuf, "%02X ", buffer[i]);
+        snprintf(strbuf, sizeof(strbuf), "%02X ", buffer[i]);
         Serial.print(strbuf);
         if (i % 16 == 15 && i < BUFSIZE-1) Serial.println();
     }
