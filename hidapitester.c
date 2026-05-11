@@ -327,7 +327,7 @@ int main(int argc, char* argv[])
             }
             else if( cmd == CMD_SERIALNUMBER ) {
 
-                swprintf( serial_wstr, sizeof(serial_wstr)/sizeof(wchar_t), L"%s", optarg);
+                mbstowcs( serial_wstr, optarg, sizeof(serial_wstr)/sizeof(wchar_t));
             }
             else if( cmd == CMD_LIST ||
                      cmd == CMD_LIST_USAGES ||
