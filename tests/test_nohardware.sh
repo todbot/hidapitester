@@ -60,6 +60,7 @@ check "--read-input-report accepts hex 0x01"     0 "Error on read: no device ope
 
 # --- option validation ---
 check "--width 0 prints error"  0 "print width must be greater than 0"  "$BIN" --width 0 --version
+check_list "--nonexclusive is accepted"  "$BIN" --nonexclusive --list
 
 printf "\nResults: %d passed, %d failed\n" "$PASS" "$FAIL"
 [ "$FAIL" -eq 0 ]

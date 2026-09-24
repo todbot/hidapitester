@@ -14,6 +14,9 @@
 #include <getopt.h>
 
 #include "hidapi.h"
+#ifdef __APPLE__
+#include "hidapi_darwin.h"
+#endif
 
 
 #define MAX_STR 1024  // for manufacturer, product strings
@@ -38,6 +41,7 @@ static void print_usage(char *myname)
 "  --list-usages               List HID devices w/ usages (by filters)\n"
 "  --list-detail               List HID devices w/ details (by filters)\n"
 "  --open                      Open device with previously selected filters\n"
+"  --nonexclusive              Open devices without exclusive access (macOS only)\n"
 "  --open-path <pathstr>       Open device by path (as in --list-detail) \n"
 "  --close                     Close currently open device \n"
 "  --get-report-descriptor     Get the report descriptor\n"
@@ -59,6 +63,7 @@ static void print_usage(char *myname)
 "Notes: \n"
 " . Commands are executed in order. \n"
 " . --vidpid, --usage, --usagePage, --serial act as filters to --open and --list \n"
+" . --nonexclusive must come before --open or --open-path \n"
 "\n"
 "Examples: \n"
 ". List all devices \n"
@@ -95,6 +100,7 @@ enum {
     CMD_LIST_JSON,
     CMD_OPEN,
     CMD_OPEN_PATH,
+    CMD_NONEXCLUSIVE,
     CMD_CLOSE,
     CMD_GET_REPORT_DESCRIPTOR,
     CMD_SEND_OUTPUT,
@@ -120,6 +126,18 @@ int print_width = 32; // how many characters per line
 #include <unistd.h>
 #define sleep_ms(ms) usleep((ms) * 1000)
 #endif
+
+/**
+ * Initialize HIDAPI, exiting on failure. Safe to call multiple times.
+ * Called lazily so commands like --version work without USB access.
+ */
+static void init_hidapi(void)
+{
+    if (hid_init() != 0) {
+        fprintf(stderr, "Failed to initialize HIDAPI: %ls\n", hid_error(NULL));
+        exit(1);
+    }
+}
 
 /**
  * printf that can be shut up
@@ -272,6 +290,7 @@ int main(int argc, char* argv[])
          {"list-json",    no_argument,       &cmd,   CMD_LIST_JSON},
          {"open",         no_argument,       &cmd,   CMD_OPEN},
          {"open-path",    required_argument, &cmd,   CMD_OPEN_PATH},
+         {"nonexclusive", no_argument,       &cmd,   CMD_NONEXCLUSIVE},
          {"close",        no_argument,       &cmd,   CMD_CLOSE},
          {"send-output",  required_argument, &cmd,   CMD_SEND_OUTPUT},
          {"send-out",     required_argument, &cmd,   CMD_SEND_OUTPUT},
@@ -297,6 +316,11 @@ int main(int argc, char* argv[])
         if (opt==-1) done = true; // parsed all the args
         switch(opt) {
         case 0:                   // long opts with no short opts
+
+            // --version is the only command that doesn't need hidapi
+            if( cmd != CMD_VERSION ) {
+                init_hidapi();
+            }
 
             if( cmd == CMD_VIDPID ) {
 
@@ -328,6 +352,26 @@ int main(int argc, char* argv[])
             else if( cmd == CMD_SERIALNUMBER ) {
 
                 mbstowcs( serial_wstr, optarg, sizeof(serial_wstr)/sizeof(wchar_t));
+            }
+            else if( cmd == CMD_NONEXCLUSIVE ) {
+#if defined(__APPLE__)
+                // hidapi's macOS backend seizes devices on open by default, which
+                // requires root for keyboards and stops mice from moving the cursor.
+                // (hidapi is already initialized above, so this won't be reset)
+                hid_darwin_set_open_exclusive(0);
+                msginfo("Set open mode to non-exclusive\n");
+#elif defined(_WIN32) || (defined(__linux__) && !defined(__ANDROID__))
+                // Windows and hidraw backends always open devices non-exclusively.
+                // (assumes hidraw on Linux, which is what hidapi builds by default)
+                msginfo("Devices are always opened non-exclusively on this platform\n");
+#else
+                // libusb (e.g. FreeBSD) and NetBSD uhid backends always open
+                // devices exclusively, so this can't be honored
+                if(!msg_quiet) {
+                    fprintf(stderr, "Warning: --nonexclusive is not supported on this platform, "
+                                    "devices will be opened exclusively\n");
+                }
+#endif
             }
             else if( cmd == CMD_LIST ||
                      cmd == CMD_LIST_USAGES ||

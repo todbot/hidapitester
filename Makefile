@@ -44,6 +44,7 @@ HIDAPITESTER_VERSION?="$(GIT_TAG)"
 ifeq "$(OS)" "macos"
 
 CFLAGS+=-arch x86_64 -arch arm64
+CFLAGS+=-I $(HIDAPI_DIR)/mac
 LIBS=-framework IOKit -framework CoreFoundation -framework AppKit
 OBJS=$(HIDAPI_DIR)/mac/hid.o
 EXE=

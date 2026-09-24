@@ -52,6 +52,7 @@ Those commands are:
   --list-usages               List HID devices w/ usages (by filters)
   --list-detail               List HID devices w/ details (by filters)
   --open                      Open device with previously selected filters
+  --nonexclusive              Open devices without exclusive access (macOS only)
   --open-path <pathstr>       Open device by path (as in --list-detail)
   --close                     Close currently open device
   --get-report-descriptor     Get the report descriptor
@@ -106,6 +107,20 @@ hidapitester --usage FFAB --open                        # specify only usagePage
 hidapitester --0/0486  --open                           # specify only pid
 hidapitester --vidpid 16C0/486 --usagePage FFAB --open  # specify vid,pid,usagePage
 ```
+
+On macOS, hidapi opens devices exclusively by default. This needs root for
+keyboards and stops a mouse from moving the cursor while it's open. Pass
+`--nonexclusive` before `--open` or `--open-path` to open devices in shared mode:
+
+```text
+hidapitester --vidpid 046D:B378 --nonexclusive --open --read-input
+```
+
+On Linux (hidraw) and Windows, devices are always opened in shared mode, so
+`--nonexclusive` does nothing there. On platforms that use the libusb backend
+(FreeBSD, for example) or NetBSD's uhid backend, devices are always opened
+exclusively. There, `--nonexclusive` prints a warning and the device is still
+opened exclusively.
 
 ### Reading and Writing Reports
 
