@@ -19,6 +19,8 @@ jobs:
   # This workflow contains a single job called "build"
   build:
     runs-on: macos-latest
+    permissions:
+      contents: write
     defaults:
       run:
         working-directory: hidapitester
@@ -88,3 +90,12 @@ jobs:
         with:
           name: hidapitester-macos
           path: hidapitester/hidapitester-*.zip
+
+      - name: Attach zips to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v3
+        with:
+          # Draft until all four platform workflows have attached their zip
+          draft: true
+          fail_on_unmatched_files: true
+          files: hidapitester/hidapitester-*.zip

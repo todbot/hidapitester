@@ -8,6 +8,8 @@ env:
 jobs:
   build:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
         with:
@@ -38,3 +40,12 @@ jobs:
           name: hidapitester-raspberrypi
           path: artifacts/*.zip
 
+
+      - name: Attach zips to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: softprops/action-gh-release@v3
+        with:
+          # Draft until all four platform workflows have attached their zip
+          draft: true
+          fail_on_unmatched_files: true
+          files: artifacts/*.zip
