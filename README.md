@@ -38,6 +38,13 @@ for builds for:
 - Linux (Ubuntu x64 and Raspberry Pi)
 - Windows 64-bit
 
+If on MacOS or Linux and have [Homebrew](https://brew.sh/) set up, install with:
+
+```sh
+brew install hidapitester
+```
+
+
 ## Usage
 
 `hidapitester` works by parsing a list of arguments as commands it executes in order.
