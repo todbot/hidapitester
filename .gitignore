@@ -61,3 +61,6 @@ hidapitester
 .vscode/*.code-workspace
 .vscode/ipch/
 build/
+
+# generated at build time; committing one would pin the version
+.git-tag
