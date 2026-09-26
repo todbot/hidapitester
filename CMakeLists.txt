@@ -7,7 +7,7 @@ project(hidapitester LANGUAGES C)
 set(HIDAPITESTER_VERSION "" CACHE STRING "Version string; derived from git tag when empty")
 if(NOT HIDAPITESTER_VERSION)
     execute_process(
-        COMMAND git describe --tags --abbrev=0
+        COMMAND git describe --tags --abbrev=0 --match "v*"
         WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
         OUTPUT_VARIABLE HIDAPITESTER_VERSION
         ERROR_QUIET

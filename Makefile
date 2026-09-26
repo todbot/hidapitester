@@ -27,14 +27,17 @@ endif
 
 # construct version string from git tag
 # allow overriding of GIT_TAG for automated builds
-# If we have a file .git-tag (from source archive), read it
+# If we have a file .git-tag (from source archive), read it.
+# cat, not $(file <...): that needs make 4.0 and macOS ships 3.81.
 ifneq ($(wildcard .git-tag),)
-	GIT_TAG_RAW=$(file <.git-tag)
+	GIT_TAG_RAW=$(strip $(shell cat .git-tag))
 endif
-GIT_TAG_RAW?=$(strip $(shell git tag 2>&1 | tail -1 | cut -f1 -d' '))
-# deal with case of no git or no git tags, check for presence of "v" (i.e. "v1.93")
-ifneq ($(findstring v,$(GIT_TAG_RAW)), v)
-	GIT_TAG_RAW:="v$(strip $(shell date -r . +'%Y%m%d' ))"
+# describe, not `git tag | tail -1`: that sorts lexically, so v0.6 beats v0.10.
+# --match skips the legacy unprefixed tags (0.1 through 0.5).
+GIT_TAG_RAW?=$(strip $(shell git describe --tags --abbrev=0 --match 'v*' 2>/dev/null))
+# no git, or no vX.Y tag reachable
+ifeq ($(GIT_TAG_RAW),)
+	GIT_TAG_RAW:=v$(strip $(shell date -r . +'%Y%m%d'))
 endif
 GIT_TAG?="$(GIT_TAG_RAW)"
 HIDAPITESTER_VERSION?="$(GIT_TAG)"
